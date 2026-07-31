@@ -1,5 +1,5 @@
 ---
-name: chapter-ideas
+name: pre-chapter-ideas
 description: >-
   방금 배운 챕터의 핵심 개념을 넣으면, 이번 주 각자 만들어볼 실습/도구 주제 후보를
   뽑아준다. "이번 주 뭐 만들지", "실습 주제 추천", "챕터 실습 아이디어", "주제 뽑아줘",

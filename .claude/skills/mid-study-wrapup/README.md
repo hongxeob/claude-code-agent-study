@@ -44,4 +44,4 @@
 
 ## 상태
 
-지금은 개인 폴더(`members/hongseob/`). 셋 다 좋으면 `.claude/skills/mid-study-wrapup/`으로 승격(모임 중 스킬) → 팀 전체 자동 사용.
+`.claude/skills/mid-study-wrapup/`에 승격됨 (모임 중 스킬) — 팀 전체 자동 사용. 계속 다듬는다.

@@ -36,4 +36,4 @@
 
 ## 상태
 
-지금은 개인 폴더(`members/hongseob/`). 팀 결과물용이라 승격 1순위 후보 — 셋 다 좋으면 `.claude/skills/chapter-merge/`로.
+`.claude/skills/mid-chapter-merge/`에 승격됨 (모임 중 스킬) — 팀 전체 자동 사용. 계속 다듬는다.

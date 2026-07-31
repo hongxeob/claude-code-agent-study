@@ -1,5 +1,5 @@
 ---
-name: chapter-merge
+name: mid-chapter-merge
 description: >-
   스터디 중, 참여자들이 각자 만든 챕터 개인 정리본(md) 여러 개를 받아 그 주의 챕터
   결과물(챕터 README md + 통합 발표 HTML 한 장)로 통합한다. 개인 생각을 뭉개지 않고 사람별 섹션은 보존하되,

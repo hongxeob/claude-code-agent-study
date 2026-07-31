@@ -1,5 +1,5 @@
 ---
-name: study-wrapup
+name: mid-study-wrapup
 description: >-
   스터디 발표·토의를 담은 Gemini 회의록을 받아, 마지막 10분 회고의 베이스를 만들어주는 스킬.
   요약이 아니라 회고 — 사실→성찰→액션으로 되짚고, 팀 운영은 KPT로 잡는다.

@@ -1,5 +1,5 @@
 ---
-name: chapter-prep
+name: pre-chapter-prep
 description: >-
   스터디 모이기 전, 본인이 자기 언어로 정리한 챕터 md를 넣으면, 먼저 (1) 개인 정리본
   md(첨삭+역질문)를 만들고, 역질문에 답해 확정하면 (2) 그 정리본으로 발표용 HTML 한 장을

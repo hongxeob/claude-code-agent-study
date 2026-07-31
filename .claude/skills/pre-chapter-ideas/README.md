@@ -27,4 +27,4 @@
 
 ## 상태
 
-지금은 개인 폴더(`members/hongseob/`). 셋 다 좋으면 `.claude/skills/chapter-ideas/`로 승격.
+`.claude/skills/pre-chapter-ideas/`에 승격됨 (모임 전 스킬) — 팀 전체 자동 사용. 계속 다듬는다.
