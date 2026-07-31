@@ -49,6 +49,14 @@
 
 > 발표가 끝나는 **30분 시점에 Gemini 회의록을 추출해 `mid-study-wrapup`을 돌려둔다.** 통합·리더 공유가 진행되는 동안 결과가 나오고, 마지막 10분에 그걸 보며 회고한다.
 
+## 공통 스킬
+
+논의로 추린 스킬을 [`.claude/skills/`](./.claude/skills/)에 모임 전(`pre-`) / 모임 중(`mid-`) / 상시로 나눠 둡니다. 상세·사용법은 링크 참고.
+
+- **모임 전** — `pre-chapter-prep`(챕터 노트 → 정리본 md + 발표 html), `pre-chapter-ideas`(챕터 → 실습 주제 후보)
+- **모임 중** — `mid-chapter-merge`(3인 정리본 → 그 주 결과물), `mid-study-wrapup`(회의록 → 회고 베이스)
+- **상시** — `tell-me-about-claude-code`(키워드 공식문서 설명), `update-claude-code-docs`(주차별 업데이트 축적)
+
 ## 커리큘럼
 
 ### 1주차
