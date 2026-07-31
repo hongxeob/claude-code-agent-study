@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ch3 서브에이전트 — 홍섭</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#171b2e; --ink:#eef1ff; --muted:#a6adcb;
+    --line:#2a3050; --accent:#7c9cff;
+    --par:#4dd0a0; --par-bg:#122a22; --par-line:#245c47;
+    --seq:#ffb85c; --seq-bg:#2a2113; --seq-line:#5c4620;
+    --open:#ff6b8a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 80px}
+  section{padding:48px 0;border-bottom:1px solid var(--line)}
+  section:last-child{border-bottom:none}
+  .eyebrow{font-size:.8rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  h1{font-size:clamp(2rem,6vw,3.2rem);line-height:1.15;margin:14px 0 10px;letter-spacing:-.02em}
+  h2{font-size:clamp(1.4rem,4vw,1.9rem);margin-bottom:8px;letter-spacing:-.01em}
+  .lead{color:var(--muted);font-size:1.05rem}
+  .hero{padding:72px 0 56px}
+  .byline{display:inline-flex;align-items:center;gap:10px;margin-top:22px;padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:.95rem;color:var(--muted)}
+  .byline b{color:var(--ink)}
+  .sec-tag{color:var(--muted);font-size:.85rem;font-weight:600;margin-bottom:18px}
+
+  /* 핵심 카드 */
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .card .n{font-size:1.6rem;line-height:1}
+  .card h3{font-size:1.05rem;margin:12px 0 6px}
+  .card p{color:var(--muted);font-size:.95rem}
+
+  /* 병렬 vs 순차 2열 */
+  .vs{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:26px;align-items:stretch}
+  .col{border-radius:18px;padding:24px;border:1px solid}
+  .col.par{background:var(--par-bg);border-color:var(--par-line)}
+  .col.seq{background:var(--seq-bg);border-color:var(--seq-line)}
+  .col-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .col-head .ico{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:1.2rem;flex:none}
+  .col.par .ico{background:var(--par);color:#06231a}
+  .col.seq .ico{background:var(--seq);color:#3a2606}
+  .col-head h3{font-size:1.3rem}
+  .col.par .col-head h3{color:var(--par)}
+  .col.seq .col-head h3{color:var(--seq)}
+  .col .sub{font-size:.85rem;color:var(--muted);margin-bottom:16px}
+  .row{display:flex;gap:12px;padding:12px 0;border-top:1px dashed rgba(255,255,255,.1)}
+  .row .k{flex:none;width:64px;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+  .row .v{font-size:.98rem}
+  .badge{display:inline-block;font-size:.75rem;font-weight:700;padding:3px 9px;border-radius:999px;margin-top:4px}
+  .col.par .badge{background:rgba(77,208,160,.18);color:var(--par)}
+  .col.seq .badge{background:rgba(255,184,92,.18);color:var(--seq)}
+  .vs-note{margin-top:16px;font-size:.9rem;color:var(--muted);text-align:center}
+
+  /* 개념 / 적용 */
+  .concept{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:14px;padding:24px;margin-top:20px}
+  .concept .q{font-size:1.2rem;font-weight:700;margin-bottom:8px}
+  .flow{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:18px}
+  .node{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:.92rem}
+  .node.hub{border-color:var(--accent);color:var(--accent);font-weight:700}
+  .node.par{border-color:var(--par-line);color:var(--par)}
+  .arrow{color:var(--muted)}
+  .pill-info{display:inline-block;margin-top:14px;font-size:.85rem;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:999px;padding:5px 14px}
+
+  /* 미해결 */
+  .open{background:linear-gradient(180deg,rgba(255,107,138,.08),transparent);border:1px solid rgba(255,107,138,.35);border-radius:16px;padding:26px;margin-top:20px}
+  .open .tag{display:inline-block;font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--open);border:1px solid rgba(255,107,138,.4);border-radius:999px;padding:3px 11px;margin-bottom:12px}
+  .open .q{font-size:1.35rem;font-weight:700;line-height:1.4}
+  .open p{color:var(--muted);margin-top:8px}
+
+  @media (max-width:640px){
+    .cards,.vs{grid-template-columns:1fr}
+    .hero{padding:52px 0 40px}
+    section{padding:40px 0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow">Chapter 3 · 스터디 발표</div>
+    <h1>서브에이전트<br>병렬 실행</h1>
+    <p class="lead">여러 에이전트를 동시에 띄울 수 있다. 그런데 언제 병렬이 진짜 이득일까?</p>
+    <div class="byline">발표자 · <b>홍섭</b></div>
+  </section>
+
+  <section>
+    <div class="sec-tag">01 — 핵심</div>
+    <h2>두 문장으로 요약</h2>
+    <div class="cards">
+      <div class="card">
+        <div class="n">🧩</div>
+        <h3>병렬로 여러 개</h3>
+        <p>서브에이전트는 한 번에 여러 개를 병렬로 띄울 수 있다.</p>
+      </div>
+      <div class="card">
+        <div class="n">⏱️</div>
+        <h3>벽시계 시간 단축</h3>
+        <p>독립 작업이 여러 개면 병렬이 벽시계 시간을 줄인다. 의존이 있으면 순차.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-tag">02 — 비교</div>
+    <h2>병렬 vs 순차</h2>
+    <p class="lead">같은 일도 작업 간 의존 관계에 따라 선택이 갈린다.</p>
+    <div class="vs">
+      <div class="col par">
+        <div class="col-head">
+          <div class="ico">⚡</div>
+          <h3>병렬</h3>
+        </div>
+        <div class="sub">동시에 여러 에이전트</div>
+        <div class="row"><div class="k">속도</div><div class="v">빠름 <span class="badge">벽시계 ↓</span></div></div>
+        <div class="row"><div class="k">비용</div><div class="v">토큰 ↑, 결과 합치기 비용 발생</div></div>
+        <div class="row"><div class="k">쓸 때</div><div class="v">독립 작업이 여럿일 때</div></div>
+      </div>
+      <div class="col seq">
+        <div class="col-head">
+          <div class="ico">➡️</div>
+          <h3>순차</h3>
+        </div>
+        <div class="sub">하나씩 차례대로</div>
+        <div class="row"><div class="k">속도</div><div class="v">느림</div></div>
+        <div class="row"><div class="k">비용</div><div class="v">단순 <span class="badge">합치기 없음</span></div></div>
+        <div class="row"><div class="k">쓸 때</div><div class="v">앞 결과가 뒤에 필요할 때</div></div>
+      </div>
+    </div>
+    <p class="vs-note">한쪽이 정답은 아니다 — 의존 관계가 선택을 가른다.</p>
+  </section>
+
+  <section>
+    <div class="sec-tag">03 — 발표 개념</div>
+    <h2>언제 병렬이 이득인가</h2>
+    <div class="concept">
+      <div class="q">“작업들이 서로 독립인가?”</div>
+      <p class="lead">독립이면 fan-out으로 병렬화해 벽시계 시간을 줄인다. 서로 결과를 물고 있으면 순차가 맞다.</p>
+      <div class="flow">
+        <span class="node hub">오케스트레이터</span>
+        <span class="arrow">→ fan-out →</span>
+        <span class="node par">서브 A</span>
+        <span class="node par">서브 B</span>
+        <span class="node par">서브 C</span>
+      </div>
+    </div>
+    <span class="pill-info">적용 예시(실측): 아직 없음 — 도입한다면 워크플로 fan-out</span>
+  </section>
+
+  <section>
+    <div class="sec-tag">04 — 미해결</div>
+    <h2>역질문</h2>
+    <div class="open">
+      <span class="tag">Open Question</span>
+      <div class="q">병렬의 손익분기 기준은 무엇인가?</div>
+      <p>속도 이득과 (토큰 + 합치기) 비용이 만나는 지점 — 아직 답을 못 냈다.</p>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

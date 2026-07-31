@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ch3 서브에이전트 — 재윤</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f1117;
+    --panel: #1a1d27;
+    --ink: #e8eaf0;
+    --muted: #9aa0b0;
+    --line: #2a2e3c;
+    --gain: #34d399;
+    --gain-bg: rgba(52,211,153,0.10);
+    --cost: #f87171;
+    --cost-bg: rgba(248,113,113,0.10);
+    --accent: #7c9cff;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* Header */
+  header {
+    padding: 72px 20px 56px;
+    text-align: center;
+    background: radial-gradient(ellipse at top, rgba(124,156,255,0.14), transparent 65%);
+    border-bottom: 1px solid var(--line);
+  }
+  .tag {
+    display: inline-block;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  header h1 {
+    font-size: clamp(30px, 6vw, 52px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  header .by { margin-top: 14px; color: var(--muted); font-size: 16px; }
+
+  section { margin-top: 56px; }
+  .sec-title {
+    font-size: 22px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .sec-title .num {
+    font-size: 14px;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 2px 9px;
+    font-weight: 700;
+  }
+
+  /* 핵심 카드 */
+  .core {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .core .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px;
+  }
+  .core .card .ic { font-size: 26px; }
+  .core .card p { margin-top: 10px; font-size: 16px; color: var(--ink); }
+  .core .card strong { color: var(--accent); }
+
+  /* 이득 vs 대가 */
+  .versus {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0;
+    align-items: stretch;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .col { padding: 28px 26px; }
+  .col.gain { background: var(--gain-bg); }
+  .col.cost { background: var(--cost-bg); }
+  .col h3 {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 19px; font-weight: 800; margin-bottom: 18px;
+  }
+  .col.gain h3 { color: var(--gain); }
+  .col.cost h3 { color: var(--cost); }
+  .col ul { list-style: none; }
+  .col li {
+    position: relative;
+    padding-left: 26px;
+    margin-bottom: 14px;
+    font-size: 15.5px;
+  }
+  .col.gain li::before { content: "▲"; position: absolute; left: 0; color: var(--gain); font-size: 12px; top: 4px; }
+  .col.cost li::before { content: "▼"; position: absolute; left: 0; color: var(--cost); font-size: 12px; top: 4px; }
+  .divider {
+    display: flex; align-items: center; justify-content: center;
+    background: var(--line);
+    width: 1px;
+  }
+  .divider span {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 13px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  /* 발표 개념 */
+  .concept {
+    background: linear-gradient(135deg, rgba(124,156,255,0.16), rgba(124,156,255,0.04));
+    border: 1px solid rgba(124,156,255,0.35);
+    border-radius: 16px;
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .concept .label { font-size: 13px; letter-spacing: 0.1em; color: var(--accent); font-weight: 700; text-transform: uppercase; }
+  .concept .quote {
+    font-size: clamp(24px, 5vw, 38px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-top: 14px;
+    line-height: 1.25;
+  }
+  .concept .quote .hl { color: var(--cost); }
+
+  /* 적용예시 + 미해결 */
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px 24px;
+    font-size: 15.5px;
+  }
+  .note .k { color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: block; margin-bottom: 6px; }
+  .note.open { border-left-color: var(--cost); }
+  .note.open .q { font-size: 17px; font-weight: 600; }
+  .note.open .sub { color: var(--muted); margin-top: 8px; font-size: 14.5px; }
+
+  @media (max-width: 680px) {
+    .core { grid-template-columns: 1fr; }
+    .versus { grid-template-columns: 1fr; }
+    .divider { width: auto; height: 1px; }
+    .divider span { transform: translateY(-50%); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="tag">chapter 3</span>
+  <h1>서브에이전트<br>격리의 대가는 토큰</h1>
+  <p class="by">발표자 · 재윤</p>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <div class="sec-title"><span class="num">01</span> 핵심</div>
+    <div class="core">
+      <div class="card">
+        <div class="ic">🧹</div>
+        <p>서브에이전트는 <strong>컨텍스트를 격리</strong>한다. 메인 대화를 안 더럽힌다.</p>
+      </div>
+      <div class="card">
+        <div class="ic">🎟️</div>
+        <p>대신 <strong>별도 컨텍스트</strong>라서 토큰을 추가로 쓴다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span class="num">02</span> 격리의 이득 vs 대가</div>
+    <div class="versus">
+      <div class="col gain">
+        <h3>🟢 이득</h3>
+        <ul>
+          <li>메인 컨텍스트 절약</li>
+          <li>작업 집중</li>
+        </ul>
+      </div>
+      <div class="divider"><span>vs</span></div>
+      <div class="col cost">
+        <h3>🔴 대가</h3>
+        <ul>
+          <li>위임 프롬프트 + 결과 반환에 토큰 이중 지출 가능</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span class="num">03</span> 발표 개념</div>
+    <div class="concept">
+      <span class="label">한 줄 요약</span>
+      <p class="quote">"격리의 대가는 <span class="hl">토큰</span>"</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span class="num">04</span> 적용 예시 (실측)</div>
+    <div class="note">
+      <span class="k">아직 없음</span>
+      도입한다면 긴 탐색을 <strong>explore 에이전트</strong>로 분리.
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title"><span class="num">05</span> 미해결 · 역질문</div>
+    <div class="note open">
+      <p class="q">격리가 토큰 두 배인가, 메인 절약분이 상쇄하나?</p>
+      <p class="sub">→ 측정 필요</p>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

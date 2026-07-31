@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ch3 서브에이전트 — 준호</title>
+<style>
+  :root{
+    --bg:#0f1117; --surface:#171a23; --surface2:#1e222e;
+    --ink:#e8ebf2; --muted:#9aa3b5; --line:#2a2f3d;
+    --single:#f2994a; --single-soft:rgba(242,153,74,.12);
+    --multi:#5b8def; --multi-soft:rgba(91,141,239,.12);
+    --accent:#7c5cff; --good:#2ecc9b; --warn:#e6b800;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px; margin:0 auto; padding:0 20px}
+  section{padding:56px 0; border-bottom:1px solid var(--line)}
+  section:last-child{border-bottom:none}
+  .eyebrow{
+    display:inline-block; font-size:.78rem; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent); font-weight:700; margin-bottom:12px;
+  }
+  h1{font-size:clamp(2rem,5vw,3.1rem); line-height:1.15; margin:0 0 14px; font-weight:800}
+  h2{font-size:clamp(1.4rem,3.5vw,2rem); margin:0 0 24px; font-weight:800}
+  h3{font-size:1.05rem; margin:0 0 6px; font-weight:700}
+  p{margin:0 0 12px}
+  .lead{color:var(--muted); font-size:1.05rem; max-width:640px}
+
+  /* Hero */
+  .hero{
+    padding:80px 0 64px;
+    background:radial-gradient(1200px 400px at 15% -10%, rgba(124,92,255,.18), transparent 60%);
+  }
+  .meta{display:flex; gap:10px; flex-wrap:wrap; margin-top:22px}
+  .pill{
+    display:inline-flex; align-items:center; gap:7px;
+    background:var(--surface); border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; font-size:.9rem; color:var(--muted);
+  }
+  .pill b{color:var(--ink); font-weight:700}
+
+  /* 핵심 카드 */
+  .cards{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .card{
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:14px; padding:22px 20px;
+  }
+  .card .ico{font-size:1.5rem; margin-bottom:8px}
+  .card p{color:var(--muted); margin:0}
+
+  /* 2열 대비 */
+  .versus{display:grid; grid-template-columns:1fr 64px 1fr; gap:0; align-items:stretch}
+  .col{border-radius:16px; padding:26px 22px; border:1px solid var(--line)}
+  .col.single{background:var(--single-soft); border-color:rgba(242,153,74,.4)}
+  .col.multi{background:var(--multi-soft); border-color:rgba(91,141,239,.4)}
+  .col .tag{
+    display:inline-flex; align-items:center; gap:8px; font-weight:800; font-size:1.15rem; margin-bottom:16px;
+  }
+  .col.single .tag{color:var(--single)}
+  .col.multi .tag{color:var(--multi)}
+  .col .tag .badge{
+    width:34px; height:34px; border-radius:9px; display:grid; place-items:center; font-size:1.1rem;
+  }
+  .col.single .tag .badge{background:var(--single); color:#1a1206}
+  .col.multi .tag .badge{background:var(--multi); color:#06122a}
+  .feat{list-style:none; margin:0; padding:0}
+  .feat li{position:relative; padding:9px 0 9px 26px; border-top:1px dashed var(--line); font-size:.97rem}
+  .feat li:first-child{border-top:none}
+  .feat li::before{position:absolute; left:0; top:9px}
+  .col.single .feat li::before{content:"⚖️"}
+  .col.multi .feat li::before{content:"⚖️"}
+  .feat .k{display:block; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:2px}
+  .vs-mid{display:grid; place-items:center}
+  .vs-mid span{
+    width:52px; height:52px; border-radius:50%; display:grid; place-items:center;
+    background:var(--surface2); border:1px solid var(--line); font-weight:800; color:var(--muted);
+  }
+  .cost{margin-top:16px; font-size:.9rem; padding-top:14px; border-top:1px solid var(--line)}
+  .col.single .cost{color:var(--single)}
+  .col.multi .cost{color:var(--multi)}
+
+  /* 발표 개념 강조 */
+  .concept{
+    background:linear-gradient(135deg, rgba(124,92,255,.16), rgba(91,141,239,.08));
+    border:1px solid rgba(124,92,255,.4); border-radius:16px; padding:30px 26px;
+  }
+  .concept .big{font-size:clamp(1.6rem,4vw,2.4rem); font-weight:800; margin:0}
+  .concept p{color:var(--muted); margin:12px 0 0}
+
+  .apply{
+    display:flex; gap:14px; align-items:flex-start;
+    background:var(--surface); border:1px solid var(--line);
+    border-left:4px solid var(--good); border-radius:12px; padding:18px 20px; margin-top:18px;
+  }
+  .apply .ico{font-size:1.4rem}
+  .apply .k{font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--good); font-weight:700; display:block; margin-bottom:3px}
+
+  /* 미해결 */
+  .open{
+    display:flex; gap:14px; align-items:flex-start;
+    background:var(--surface); border:1px solid rgba(230,184,0,.35);
+    border-left:4px solid var(--warn); border-radius:12px; padding:20px 22px;
+  }
+  .open .ico{font-size:1.5rem}
+  .open .k{font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--warn); font-weight:700; display:block; margin-bottom:4px}
+  .open p{margin:0; color:var(--ink)}
+  .open .sub{color:var(--muted); font-size:.92rem; margin-top:6px}
+
+  footer{padding:30px 0; text-align:center; color:var(--muted); font-size:.85rem}
+
+  @media (max-width:720px){
+    .cards{grid-template-columns:1fr}
+    .versus{grid-template-columns:1fr}
+    .vs-mid{padding:6px 0}
+    .vs-mid span{transform:rotate(90deg)}
+    section{padding:44px 0}
+    .hero{padding:56px 0 44px}
+  }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <span class="eyebrow">Chapter 3 · 스터디 발표</span>
+      <h1>서브에이전트로<br>교차검증하기</h1>
+      <p class="lead">산출물에 리뷰어를 병렬로 붙여 의견을 비교한다. 하나가 놓친 걸 다른 하나가 잡는다.</p>
+      <div class="meta">
+        <span class="pill">👤 발표자 <b>준호</b></span>
+        <span class="pill">📘 ch3 <b>서브에이전트</b></span>
+        <span class="pill">🧩 개념 <b>다중 심판 검증</b></span>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">핵심</span>
+      <h2>왜 서브에이전트인가</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="ico">🔀</div>
+          <h3>병렬 교차검증</h3>
+          <p>하나의 산출물에 리뷰어 에이전트를 병렬로 붙이고, 나온 의견을 비교한다.</p>
+        </div>
+        <div class="card">
+          <div class="ico">🎯</div>
+          <h3>놓침 보완</h3>
+          <p>하나가 놓친 지점을 다른 하나가 잡아낸다. 검토의 사각지대가 줄어든다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">핵심 대비</span>
+      <h2>단일 심판 vs 다중 심판</h2>
+      <div class="versus">
+        <div class="col single">
+          <div class="tag"><span class="badge">⚖️</span> 단일 심판</div>
+          <ul class="feat">
+            <li><span class="k">구성</span> 리뷰어 1개가 단독 판정</li>
+            <li><span class="k">놓침</span> 사각지대가 그대로 남을 수 있음</li>
+            <li><span class="k">비용</span> 1배 (기준)</li>
+          </ul>
+          <div class="cost">💸 비용 최소 · 놓침 위험 상대적으로 큼</div>
+        </div>
+
+        <div class="vs-mid"><span>VS</span></div>
+
+        <div class="col multi">
+          <div class="tag"><span class="badge">⚖️</span> 다중 심판</div>
+          <ul class="feat">
+            <li><span class="k">구성</span> 리뷰어 N개 병렬 → 다수결 / 합의로 판정</li>
+            <li><span class="k">놓침</span> 단일보다 놓침이 줄어듦</li>
+            <li><span class="k">비용</span> N배</li>
+          </ul>
+          <div class="cost">💸 비용 N배 · 놓침은 줄지만 트레이드오프 존재</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">발표 개념</span>
+      <div class="concept">
+        <p class="big">🧑‍⚖️ 다중 심판 검증</p>
+        <p>리뷰어 N개를 병렬로 돌려 다수결 또는 합의로 산출물을 판정하는 방식. 단일 심판 대비 놓침을 줄이는 대신 비용이 N배로 늘어난다.</p>
+      </div>
+      <div class="apply">
+        <div class="ico">🧪</div>
+        <div>
+          <span class="k">적용 예시 (실측)</span>
+          <p style="margin:0">아직 없음. 도입한다면 <b>코드 리뷰에 리뷰어 2개 병렬</b>이 후보.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <span class="eyebrow">미해결</span>
+      <h2>남은 질문</h2>
+      <div class="open">
+        <div class="ico">❓</div>
+        <div>
+          <span class="k">역질문 · 미정</span>
+          <p>심판 몇 개가 반대하면 기각인가? 임계값(threshold)은 어떻게 정할 것인가?</p>
+          <p class="sub">아직 결정되지 않음 — 발표 후 논의 대상.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>ch3 서브에이전트 · 준호 · 스터디 발표 자료</footer>
+
+</body>
+</html>
