@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2장 워크플로 — 홍섭</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#191d24; --card2:#20252e; --line:#2c333d;
+    --tx:#e6e9ef; --mut:#9aa4b2; --acc:#5aa9ff; --acc2:#8be28b;
+    --warn:#ffb454; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",
+    "Malgun Gothic",sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding:48px 20px 80px}
+  header{text-align:center;padding:28px 0 8px}
+  header h1{font-size:30px;margin:0 0 6px}
+  header .sub{color:var(--mut);font-size:15px}
+  section{margin-top:40px}
+  h2{font-size:21px;border-left:4px solid var(--acc);padding-left:12px;margin:0 0 16px}
+  h3{font-size:16px;color:var(--acc);margin:20px 0 8px}
+  p{margin:8px 0}
+  .mut{color:var(--mut)}
+  code{background:#000;padding:2px 6px;border-radius:5px;font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#ffd479}
+  pre{background:#000;border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+    overflow-x:auto;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:#d7dbe3;margin:12px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0}
+  .flow .step{background:var(--card2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;font-weight:600;font-size:14px}
+  .flow .arr{color:var(--acc);font-weight:700}
+  .loop{counter-reset:s;margin:14px 0 0;padding:0;list-style:none}
+  .loop li{counter-increment:s;position:relative;padding:8px 8px 8px 40px;
+    border-bottom:1px dashed var(--line)}
+  .loop li:last-child{border:0}
+  .loop li::before{content:counter(s);position:absolute;left:6px;top:8px;
+    width:24px;height:24px;border-radius:50%;background:var(--acc);color:#001;
+    font-weight:700;text-align:center;line-height:24px;font-size:13px}
+  .loop b{color:var(--acc2)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--card2);color:var(--acc)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+  .two .card h3{margin-top:0}
+  .badge{display:inline-block;background:var(--bad);color:#001;border-radius:6px;
+    padding:1px 8px;font-size:12px;font-weight:700;margin-bottom:6px}
+  .badge.ok{background:var(--acc2)}
+  .take{background:linear-gradient(135deg,#1d2733,#182029);
+    border:1px solid var(--acc);border-radius:12px;padding:20px 22px}
+  .take li{margin:6px 0}
+  .q{border-left:3px solid var(--warn);padding-left:12px;color:var(--warn);font-weight:600}
+  @media(max-width:640px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>2장 · 워크플로</h1>
+  <div class="sub">settings.json 정체 · 탐색→분석→심화 · 스프링부트 <code>.env</code> 미스터리 — 홍섭</div>
+</header>
+
+<section>
+  <h2>한눈에</h2>
+  <div class="card">
+    <p>① <code>settings.json</code> key는 <b>정해진 스펙</b> — 임의 key는 무시됨(실험 확인).</p>
+    <p>② 좋은 작업 = <b>탐색 → 분석 → 심화+코드</b>, 앞 결과를 다음 입력으로.</p>
+    <p>③ 설정 위계 5단: <b>관리자 &gt; CLI &gt; 로컬 &gt; 프로젝트 &gt; 사용자</b>.</p>
+    <p>④ 스프링 <code>.env</code>가 빌드에서 안 읽힌 이유 = <b>셸도 스프링도 .env를 자동으로 안 읽음</b>. 정답은 <code>settings.json</code> <code>env</code>.</p>
+  </div>
+</section>
+
+<section>
+  <h2>1. settings.json은 정해진 스펙인가 — 임의 key 실험</h2>
+  <p>의문: key에 스펙이 있나, 아무거나 적어도 세팅되나?</p>
+  <pre>$ claude -p "OK만 답해" --settings '{"홍섭_임의테스트키_xyz":"hello"}'
+→ exit 0,  출력: OK,  경고 없음</pre>
+  <div class="card">
+    <p><b>결론:</b> 미정의 key는 <b>거부되지 않고 그냥 무시</b>됐다. key는 공식 스펙(<code>model</code>·<code>hooks</code>·<code>env</code> …)이 정해져 있고, 편집기에 <code>$schema</code>를 넣으면 미정의 key를 편집 단계에서 잡아준다.</p>
+    <p class="mut">(공식문서는 user/project/local을 strict라 하지만, 미정의 key가 "검증 실패"로 취급되진 않았음 — 스키마가 추가 속성 허용.)</p>
+  </div>
+</section>
+
+<section>
+  <h2>2. 워크플로 핵심 — 탐색 → 분석 → 심화</h2>
+  <div class="flow">
+    <span class="step">탐색</span><span class="arr">→</span>
+    <span class="step">분석</span><span class="arr">→</span>
+    <span class="step">심화 분석 + 코드 작업</span>
+  </div>
+  <div class="card">
+    <h3>예시 — ch1 <code>@</code>경로 실험(실제 이렇게 진행)</h3>
+    <ol class="loop">
+      <li><b>탐색</b> — 어떤 파일이 큰지 파악 (300줄 더미 만들어 크기 측정)</li>
+      <li><b>분석</b> — <code>@경로</code> vs <code>풀경로</code> 토큰 비교 (10,500 vs 175)</li>
+      <li><b>심화+코드</b> — "큰 파일은 풀경로" 결론 → 정리본·발표에 반영</li>
+    </ol>
+    <p class="mut" style="margin-top:12px">핵심: 한 번에 다 시키지 않고 <b>앞 단계 결과를 다음 단계 입력으로</b> 넘긴다.</p>
+  </div>
+</section>
+
+<section>
+  <h2>3. 점진 개발 단위 + 피드백 루프</h2>
+  <div class="two">
+    <div class="card">
+      <p class="q">팀에 질문</p>
+      <p>다들 얼마나 작은 단위로 작업? 정량 기준 두나? 어떤 자동 검증 수단 쓰나?</p>
+    </div>
+    <div class="card">
+      <h3>조사해온 것</h3>
+      <p><b>단위:</b> "몇 줄"보다 <b>한 번에 검증 가능한 최소 변경</b>으로. Claude Code는 Explore→Plan→Implement→Commit 4단계.</p>
+      <p><b>검증:</b> ESLint·Vitest·SonarQube가 AI에 <b>코칭 신호</b>. 스펙 끝에 e2e 검증. <b>좋은 프롬프트보다 좋은 피드백 루프가 더 중요.</b></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>4. settings.json 위계 (높음 → 낮음)</h2>
+  <table>
+    <tr><th>#</th><th>종류</th><th>파일</th></tr>
+    <tr><td>1</td><td>관리자(엔터프라이즈 정책)</td><td><code>managed-settings.json</code></td></tr>
+    <tr><td>2</td><td>CLI 인자</td><td><code>--effort</code> 등 세션 임시</td></tr>
+    <tr><td>3</td><td>로컬(비공유)</td><td><code>.claude/settings.local.json</code></td></tr>
+    <tr><td>4</td><td>프로젝트(팀 공유)</td><td><code>.claude/settings.json</code></td></tr>
+    <tr><td>5</td><td>사용자</td><td><code>~/.claude/settings.json</code></td></tr>
+  </table>
+  <p class="mut">겹치면 위(관리자)가 이김. "관리자 = 엔터프라이즈 정책"은 같은 것. 실측: 내 환경엔 사용자 설정만 존재.</p>
+</section>
+
+<section>
+  <h2>5. 스프링부트 <code>.env</code>가 빌드에서 안 읽히던 문제</h2>
+  <p>클로드 코드로 <code>gradle bootRun</code>/<code>java -jar</code> 돌릴 때 <code>.env</code> 값이 서버에 안 들어감. 왜?</p>
+  <pre>(a) cat .env          → 읽힘        # . prefix는 문제 아님
+(b) 새 셸에서 echo $FOO → []          # 셸이 .env 자동 로드 안 함
+(c) source .env 후      → bar         # 로드하면 들어감</pre>
+  <div class="two">
+    <div class="card">
+      <span class="badge">원인 ① 셸</span>
+      <h3>셸이 .env 자동 로드 안 함</h3>
+      <p>빌드 명령 도는 셸은 명시적 <code>source</code>/<code>export</code> 없으면 <code>.env</code>를 안 읽음.</p>
+    </div>
+    <div class="card">
+      <span class="badge">원인 ② 스프링</span>
+      <h3>스프링도 .env 안 읽음</h3>
+      <p>Spring은 <code>application.yml</code>·<b>OS 환경변수</b>·시스템 프로퍼티만 봄. <code>.env</code>는 <code>spring-dotenv</code> 없으면 무시. IDE는 실행 구성이 넣어줬던 것.</p>
+    </div>
+  </div>
+  <div class="take">
+    <span class="badge ok">정답</span>
+    <p><code>settings.json</code>의 <code>env</code>에 넣으면 됨 — 공식문서: "모든 세션과 <b>모든 subprocess</b>에 주입".</p>
+    <pre style="margin-top:8px">{ "env": { "SPRING_DATASOURCE_URL": "jdbc:...",
+           "SPRING_PROFILES_ACTIVE": "local" } }</pre>
+    <p><b>단, yaml 파일에 써넣는 게 아니다</b> (IDE도 마찬가지). 프로세스 <b>OS 환경변수</b>로 넣을 뿐, 스프링이 <b>실행 시점</b>에 읽어 dev/local 값을 구성:</p>
+    <ol class="loop" style="margin-top:6px">
+      <li><b>프로파일 선택</b> — <code>SPRING_PROFILES_ACTIVE=dev</code> → <code>application-dev.yml</code> 활성화</li>
+      <li><b>런타임 오버라이드</b> — env가 yaml보다 우선순위 높음. 같은 키면 yaml 값도 덮어씀</li>
+      <li><b>placeholder 치환</b> — yaml의 <code>${SPRING_DATASOURCE_URL}</code> 자리에 env 값 주입</li>
+    </ol>
+    <p class="mut" style="margin-top:8px">우선순위(높→낮): 실행 인자 &gt; <b>OS 환경변수</b> &gt; <code>application-{profile}.yml</code> &gt; <code>application.yml</code>.</p>
+  </div>
+
+  <h3>클로드 코드로 서버 실행 — 2가지 방법</h3>
+  <p class="q">⚠️ <code>.env</code>엔 실 자격증명이 들어감 — 커밋되는 파일엔 절대 넣지 말 것.</p>
+  <div class="two">
+    <div class="card">
+      <span class="badge">A. settings env</span>
+      <h3>값을 settings.local.json으로</h3>
+      <p><code>.env</code>의 <code>KEY=VALUE</code> → JSON으로 변환해 <b>gitignore되는</b> <code>.claude/settings.local.json</code>의 <code>env</code>에.</p>
+      <p class="mut">세팅 후 자동 주입. 단점: <code>.env</code>와 <b>이중 관리</b>.</p>
+    </div>
+    <div class="card">
+      <span class="badge ok">B. source .env (추천)</span>
+      <h3>빌드 명령에서 로드</h3>
+      <pre>set -a; . ./.env; set +a \
+  && ./gradlew bootRun</pre>
+      <p class="mut"><code>.env</code> 하나만 유지, 이중관리 없음. (또는 <code>spring-dotenv</code> 의존성)</p>
+    </div>
+  </div>
+  <div class="take">
+    <b>"서버 실행해줘" 자연어로 B를 자동 실행시키려면</b>
+    <p>프로젝트 <code>CLAUDE.md</code>에 규칙 한 줄 → 매 세션 자동 로드되므로 자연어만으로 Claude가 명령을 붙여 실행:</p>
+    <pre>## 로컬 서버 실행
+"서버 실행"/"bootRun" 요청 시 항상 아래로 실행 (.env 주입):
+`set -a; . ./.env; set +a && ./gradlew bootRun`</pre>
+    <p class="mut">반복 명령을 스킬/슬래시 커맨드(<code>/run-server</code>)로 만들어도 동일.</p>
+  </div>
+</section>
+
+<section>
+  <h2>정리</h2>
+  <div class="take">
+    <ul>
+      <li><code>settings.json</code>은 <b>정해진 스펙</b> + <b>5단 위계</b>(관리자가 최상위).</li>
+      <li>퀄리티는 <b>탐색→분석→심화</b>의 단계 이어달리기에서 나온다.</li>
+      <li>작게 쪼개고 <b>자동 검증 루프</b>를 건다 — 프롬프트보다 루프.</li>
+      <li>스프링 <code>.env</code> 미주입 = 셸·스프링 둘 다 안 읽어서. 정답은 <code>settings.json</code> <code>env</code>.</li>
+    </ul>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
