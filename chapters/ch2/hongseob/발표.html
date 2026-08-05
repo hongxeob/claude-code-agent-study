@@ -188,6 +188,14 @@
 `set -a; . ./.env; set +a && ./gradlew bootRun`</pre>
     <p class="mut">반복 명령을 스킬/슬래시 커맨드(<code>/run-server</code>)로 만들어도 동일.</p>
   </div>
+  <p style="margin-top:14px"><b>팀원과 공유하기 싫으면</b> — 위 규칙을 <code>CLAUDE.md</code> 대신 개인 전용 파일에:</p>
+  <table>
+    <tr><th>파일</th><th>범위</th><th>공유</th></tr>
+    <tr><td><code>./CLAUDE.md</code></td><td>이 프로젝트</td><td>팀 전체 (git 커밋)</td></tr>
+    <tr><td><code>./CLAUDE.local.md</code></td><td>이 프로젝트</td><td><b>나만</b> (.gitignore)</td></tr>
+    <tr><td><code>~/.claude/CLAUDE.md</code></td><td>모든 프로젝트</td><td>나만</td></tr>
+  </table>
+  <p class="mut"><code>CLAUDE.local.md</code>도 매 세션 자동 로드. <code>~/.claude/CLAUDE.md</code>는 모든 프로젝트에 적용돼 프로젝트별 서버 명령엔 너무 넓음. (worktree 여러 개면 홈 파일을 <code>@~/.claude/...</code>로 import)</p>
 </section>
 
 <section>
