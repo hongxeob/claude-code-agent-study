@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1장 세팅·개념 — 홍섭</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#191d24; --card2:#20252e; --line:#2c333d;
+    --tx:#e6e9ef; --mut:#9aa4b2; --acc:#5aa9ff; --acc2:#8be28b;
+    --warn:#ffb454; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",
+    "Malgun Gothic",sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto;padding:48px 20px 80px}
+  header{text-align:center;padding:28px 0 8px}
+  header h1{font-size:30px;margin:0 0 6px}
+  header .sub{color:var(--mut);font-size:15px}
+  section{margin-top:40px}
+  h2{font-size:21px;border-left:4px solid var(--acc);padding-left:12px;margin:0 0 16px}
+  h3{font-size:16px;color:var(--acc);margin:20px 0 8px}
+  p{margin:8px 0}
+  .mut{color:var(--mut)}
+  code{background:#000;padding:2px 6px;border-radius:5px;font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#ffd479}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0}
+  .ctx{background:var(--card2);border:1px solid var(--line);border-radius:10px;
+    padding:12px 8px;text-align:center;font-size:13px;font-weight:600}
+  .loop{counter-reset:s;margin:14px 0 0;padding:0;list-style:none}
+  .loop li{counter-increment:s;position:relative;padding:8px 8px 8px 40px;
+    border-bottom:1px dashed var(--line)}
+  .loop li:last-child{border:0}
+  .loop li::before{content:counter(s);position:absolute;left:6px;top:8px;
+    width:24px;height:24px;border-radius:50%;background:var(--acc);color:#001;
+    font-weight:700;text-align:center;line-height:24px;font-size:13px}
+  .loop b{color:var(--acc2)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--card2);color:var(--acc)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+  .two .card h3{margin-top:0}
+  .badge{display:inline-block;background:var(--acc);color:#001;border-radius:6px;
+    padding:1px 8px;font-size:12px;font-weight:700;margin-bottom:6px}
+  .badge.alt{background:var(--acc2)}
+  .num{font-size:34px;font-weight:800;line-height:1}
+  .num.big{color:var(--bad)} .num.small{color:var(--acc2)}
+  .kv{font-size:13px;color:var(--mut);margin:4px 0 0}
+  .take{background:linear-gradient(135deg,#1d2733,#182029);
+    border:1px solid var(--acc);border-radius:12px;padding:20px 22px}
+  .take li{margin:6px 0}
+  @media(max-width:640px){.grid5{grid-template-columns:repeat(2,1fr)}
+    .two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>1장 · 세팅과 개념</h1>
+  <div class="sub">클로드 코드는 어떻게 도는가 + <code>@</code> 경로 토큰 실험 — 홍섭</div>
+</header>
+
+<section>
+  <h2>한눈에</h2>
+  <div class="card">
+    <p>① Claude Code는 <b>5가지 컨텍스트를 루프</b>로 돌며 일한다.</p>
+    <p>② 체크포인트는 <b>대화만 / code만 / 둘다</b> 3종으로 되돌린다.</p>
+    <p>③ <code>@</code>는 필수 아님 — <b>큰 파일은 <code>@</code> 빼고 경로만</b> 줘야 토큰 아낀다 (실험으로 확인).</p>
+    <p>④ 세션 시작 alias <code>cdd</code>/<code>ccd</code>/<code>ccr</code> — 기본은 권한 전부 위임.</p>
+  </div>
+</section>
+
+<section>
+  <h2>1. 5가지 컨텍스트를 루프로 돈다</h2>
+  <div class="grid5">
+    <div class="ctx">파일<br>시스템</div>
+    <div class="ctx">MCP</div>
+    <div class="ctx">웹 접근</div>
+    <div class="ctx">터미널</div>
+    <div class="ctx">에디터<br>컨텍스트</div>
+  </div>
+  <div class="card">
+    <h3>예시 — "Jira 버그 티켓 하나 고치기"</h3>
+    <ol class="loop">
+      <li><b>에디터 컨텍스트</b> — 열린 파일·에러 위치 인지</li>
+      <li><b>MCP(Atlassian)</b> — Jira 티켓 본문·재현 절차 가져옴</li>
+      <li><b>파일 시스템</b> — Grep/Read로 관련 코드 추적</li>
+      <li><b>웹 접근</b> — 쓰는 라이브러리 최신 문서 확인</li>
+      <li><b>터미널</b> — 테스트 실행 → 실패 로그 → 다시 ③ 파일로</li>
+    </ol>
+    <p class="mut" style="margin-top:12px">핵심: 한 줄로 끝이 아니라 <b>터미널 결과 보고 다시 파일로 돌아가는 순환(피드백 루프)</b>.</p>
+    <p class="kv">실측: 내 환경에 firecrawl·Atlassian·playwright·kanban MCP 실제 연결됨.</p>
+  </div>
+</section>
+
+<section>
+  <h2>2. 체크포인트 3종 — 무엇을 되돌리나</h2>
+  <table>
+    <tr><th>종류</th><th>복원 대상</th><th>언제</th></tr>
+    <tr><td>대화만</td><td>대화 맥락만</td><td>코드는 좋은데 대화가 삼천포 → 코드 두고 대화만 되감기</td></tr>
+    <tr><td>code만</td><td>코드 변경만</td><td>계획은 맞는데 코드가 꼬임 → 대화 살리고 코드만 롤백</td></tr>
+    <tr><td>둘다</td><td>대화 + 코드</td><td>접근 자체가 틀림 → 그 시점으로 통째 복원</td></tr>
+  </table>
+  <p class="mut">아직 직접 안 써봄 — 위는 이해용 가정. 발표 후 <code>/rewind</code> 실제로 걸어볼 것.</p>
+</section>
+
+<section>
+  <h2>3. <code>@</code> 경로 vs 전체 경로 — 토큰 실험</h2>
+  <p>의문: 경로 지정하면 토큰 아낀다는데, <b>항상 <code>@</code> 붙여야 하나?</b><br>
+     실험: 300줄(≈10,500토큰) 더미 파일로 두 방식 비교.</p>
+  <div class="two">
+    <div class="card">
+      <span class="badge">@경로</span>
+      <h3>제출 즉시 통째 주입</h3>
+      <div class="num big">~10,500</div>
+      <p class="kv">토큰 (파일 전체) · 도구 호출 0회</p>
+      <p>작은 파일엔 왕복 없이 편하고 쌈. <b class="mut">큰 파일엔 토큰 폭증.</b></p>
+    </div>
+    <div class="card">
+      <span class="badge alt">경로만 (no @)</span>
+      <h3>필요한 부분만 Read</h3>
+      <div class="num small">~175</div>
+      <p class="kv">토큰 (150줄부터 5줄만) · 도구 호출 1회</p>
+      <p>Claude가 <b>offset/limit로 필요분만</b> 읽음. 큰 파일에서 절약.</p>
+    </div>
+  </div>
+  <div class="take" style="margin-top:6px">
+    <b>결론</b>
+    <ul>
+      <li><code>@</code> 필수 아님. 경로만 줘도 Claude가 Read로 읽는다.</li>
+      <li>"경로 = 토큰 절약"은 정확히는 <b>본문 통째 붙여넣기 대비</b> 절약.</li>
+      <li><b>작은 파일 → <code>@</code>로 바로, 큰 파일 → <code>@</code> 빼고 경로만.</b></li>
+    </ul>
+  </div>
+  <p class="mut" style="margin-top:10px">곁가지: orca 드래그&드롭 시 <code>@</code> 자동으로 안 붙던 불편이 이 실험의 계기였는데, 큰 파일이면 <code>@</code> 없는 게 오히려 이득이라 불편 아님.</p>
+</section>
+
+<section>
+  <h2>4. 세션 시작 alias (개인 팁)</h2>
+  <p class="mut">기본은 모든 권한 위임. 실측(<code>~/.zshrc</code>): 프롬프트가 아니라 <b>CLI 플래그</b>였다.</p>
+  <table>
+    <tr><th>alias</th><th>실제 명령</th><th>용도</th></tr>
+    <tr><td><code>cdd</code></td><td><code>claude --dangerously-skip-permissions</code></td><td>새 세션, 권한 전부 주고 시작</td></tr>
+    <tr><td><code>ccd</code></td><td><code>claude -c --permission-mode bypassPermissions</code></td><td>직전 세션 이어가기 (가장 많이 씀)</td></tr>
+    <tr><td><code>ccr</code></td><td><code>claude -r --permission-mode bypassPermissions</code></td><td>세션 골라서 재개</td></tr>
+  </table>
+  <p class="kv"><code>settings.json</code>의 <code>skipDangerousModePermissionPrompt</code>가 켜져 있어 확인 창도 스킵됨.</p>
+</section>
+
+<section>
+  <h2>정리</h2>
+  <div class="take">
+    <ul>
+      <li>Claude Code = 5개 컨텍스트를 <b>피드백 루프</b>로 돈다. "한 번 읽고 끝"이 아니다.</li>
+      <li>체크포인트는 <b>되돌릴 범위</b>(대화/code/둘다)를 고르는 것.</li>
+      <li><code>@</code>는 편의 기능이지 필수 아님 — <b>파일 크기로 갈라 쓴다.</b></li>
+      <li>권한·세션은 alias로 자동화 (<code>cdd</code>/<code>ccd</code>/<code>ccr</code>).</li>
+    </ul>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
