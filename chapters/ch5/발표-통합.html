@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ch5 — 출력 인터페이스 · 통합 발표</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c2230; --line:#2a3240;
+    --txt:#e6edf3; --mut:#9aa7b5; --accent:#7ee787; --blue:#79c0ff; --amber:#f2cc60; --pink:#ff9bce;
+    --hong:#7ee787; --jae:#79c0ff; --jun:#f2cc60;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    line-height:1.65;font-size:16px}
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 20px 80px}
+  header.hero{padding:28px 24px;border:1px solid var(--line);border-radius:16px;
+    background:linear-gradient(135deg,#161b22,#1c2230)}
+  .kick{color:var(--mut);font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px}
+  h1{margin:0 0 10px;font-size:30px;line-height:1.25}
+  .lead{color:var(--mut);margin:0;font-size:15px}
+  .msg{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;align-items:center}
+  .msg .chip{background:#0d1117;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px}
+  .msg .a{color:var(--blue)} .msg .b{color:var(--amber)}
+  .msg b{color:var(--mut);font-size:12px}
+  h2.section{margin:44px 0 16px;font-size:14px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);
+    border-bottom:1px solid var(--line);padding-bottom:8px}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 6px;overflow-wrap:break-word}
+  .card.hong{border-top:3px solid var(--hong)}
+  .card.jae{border-top:3px solid var(--jae)}
+  .card.jun{border-top:3px solid var(--jun)}
+  .who{margin-bottom:6px}
+  .who .name{font-size:18px;font-weight:700}
+  .card.hong .name{color:var(--hong)} .card.jae .name{color:var(--jae)} .card.jun .name{color:var(--jun)}
+  .who .role{display:block;font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4}
+  .card ul{margin:8px 0 12px;padding-left:17px}
+  .card li{margin:7px 0;font-size:13.5px}
+  .card li b{color:var(--txt)}
+  code{background:#0d1117;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--amber);overflow-wrap:break-word}
+  .lenses{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .lens{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .lens h3{margin:0 0 4px;font-size:16px}
+  .lens .sub{color:var(--mut);font-size:12.5px;margin:0 0 10px}
+  .lens.common h3{color:var(--accent)}
+  .lens.interest h3{color:var(--blue)}
+  .lens.split h3{color:var(--amber)}
+  .lens.dig h3{color:var(--pink)}
+  .lens ul{margin:0;padding-left:18px}
+  .lens li{margin:8px 0;font-size:14px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;margin-right:6px;vertical-align:1px}
+  .tag.hong{background:rgba(126,231,135,.16);color:var(--hong)}
+  .tag.jae{background:rgba(121,192,255,.16);color:var(--jae)}
+  .tag.jun{background:rgba(242,204,96,.16);color:var(--jun)}
+  .tag.team{background:rgba(255,155,206,.16);color:var(--pink)}
+  footer{margin-top:44px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--line);padding-top:16px}
+  footer a{color:var(--blue)}
+  @media(max-width:860px){.cards{grid-template-columns:1fr}.lenses{grid-template-columns:1fr}h1{font-size:24px}.wrap{padding:20px 14px 60px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kick">Chapter 5 · 통합 발표</p>
+    <h1>출력 인터페이스</h1>
+    <p class="lead">개인 정리본(홍섭·재윤·준호)을 4개 고정 렌즈로 종합</p>
+    <div class="msg">
+      <span class="chip">에이전트의 출력 표면 둘 — <span class="a">무엇을 말하나(출력 스타일)</span> · <span class="b">지금 어떤 상태인가(상태 표시줄)</span></span>
+      <span class="chip"><code>출력 스타일 = 대체</code> ↔ <code>CLAUDE.md = 추가</code></span>
+    </div>
+  </header>
+
+  <h2 class="section">참여자별 · 원문 보존</h2>
+  <div class="cards">
+    <div class="card hong">
+      <div class="who"><span class="name">홍섭</span><span class="role">출력 스타일 vs CLAUDE.md, '플러그인 경로'로 말투 성형 (실측)</span></div>
+      <ul>
+        <li><b>내장 5종</b> — draft 3개(default/explanatory/learning)였으나 공식은 +proactive·concise = 5개</li>
+        <li><b>출력 스타일 vs CLAUDE.md</b> — 시스템 프롬프트 <b>직접 수정</b>(행동 교체) vs 유저 메시지 <b>append</b>(지식). "어떻게 응답하나" ↔ "무엇을 알아야 하나"</li>
+        <li><b>접두사</b> — <code>#</code>(CLAUDE.md 저장) / <code>!</code>(bash 모드). 이 세션서 실제로 <code>!</code>로 <code>gsw</code>·<code>gl</code> 실행</li>
+        <li><b>핵심 실측</b> — 내 settings엔 <code>outputStyle</code> 없음(=default). 대신 <code>caveman·i-have-adhd·ponytail</code> 플러그인 + SessionStart 훅으로 출력 성형 중 → 말투 성형을 <b>플러그인이</b> 하고 있음</li>
+        <li><b>도입 계획</b> — <code>~/.claude/output-styles/</code>에 코드작업/이력서/면접 롤플레잉용</li>
+      </ul>
+    </div>
+    <div class="card jae">
+      <div class="who"><span class="name">재윤</span><span class="role">두 출력 표면(스타일·상태 표시줄), 바이너리·settings 실측</span></div>
+      <ul>
+        <li><b>중심 메시지</b> — 출력 표면 둘: 출력 스타일(시스템 프롬프트 대체) + 상태 표시줄(stdin JSON→내 스크립트). 둘 다 설정 파일 소유, 방향만 반대</li>
+        <li><b>바이너리 실측(v2.1.258)</b> — <code>strings</code>로 5종 이름·설명, <code>keep-coding-instructions</code>(5회), 플러그인 <code>outputStyles</code> 키 확인</li>
+        <li><b>안 만들기로 결정</b> — CLAUDE.md와 목적 중복 / 프로젝트 수준은 팀 시스템 프롬프트 <b>대체</b> → 모임 합의 사안</li>
+        <li><b>상태 표시줄만 실물</b> — 인라인 원라이너 해부(<code>jq</code> 5필드, <code>fmt_tokens</code>, <code>IJ_</code> 변수에 IntelliJ Dracula)</li>
+        <li><b>프롬프트↔결과 어긋남</b> — "<code>~</code>는 Mod" 요청 vs "Mod 3" 구현. settings 읽고서야 발견</li>
+      </ul>
+    </div>
+    <div class="card jun">
+      <div class="who"><span class="name">준호</span><span class="role">시스템 프롬프트 계층 원리 + 최신 공식문서 diff + 확장</span></div>
+      <ul>
+        <li><b>오해 2개 교정</b> — "CLAUDE.md는 길어지면 희석" ✗(둘 다 맨 앞, 희석은 훅 주입) / "시스템 프롬프트 세션당 1회 전송" ✗(매 턴 재전송, 1회는 <b>조립</b>)</li>
+        <li><b>역할 의미론</b> — <code>system</code>=협상 불가 vs <code>user</code>=밀어낼 수 있음</li>
+        <li><b>컴팩션 생존</b> — 루트 CLAUDE.md는 재주입 생존, 스코프룰·훅 주입은 소실 → "규칙을 수명으로 분류"</li>
+        <li><b>함정</b> — <code>keep-coding-instructions: true</code> 없으면 SWE 지침 제거(경고 없음)</li>
+        <li><b>최신 diff</b> — <code>/output-style</code> 제거(v2.1.91), 3→5종, 저장 3곳+플러그인, <code>/clear</code> 필요, 서브에이전트 미적용(fork 예외)</li>
+        <li><b>확장</b> — 출력 스타일 ≠ <code>--json-schema</code>, <code>--bare</code> 없는 <code>-p</code>의 CI 보안, status line</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="section">4 렌즈 · 종합</h2>
+  <div class="lenses">
+    <div class="lens common">
+      <h3>공통</h3>
+      <p class="sub">셋 다 짚은 것</p>
+      <ul>
+        <li>출력 스타일 = 시스템 프롬프트 <b>'대체'</b>(행동 교체) vs CLAUDE.md = <b>'추가'</b>(지식)</li>
+        <li>내장 스타일은 <b>5종</b> (default·proactive·concise·explanatory·learning) — 셋 다 도달</li>
+        <li>커스텀 스타일 구조·위치 — <code>~/.claude/output-styles/</code>·<code>.claude/output-styles/</code>, YAML frontmatter + 본문</li>
+        <li><code>keep-coding-instructions</code>의 무게 — 홍섭 인지 / 재윤 각주로 파고듦 / 준호 "가장 중요한 함정"</li>
+      </ul>
+    </div>
+    <div class="lens interest">
+      <h3>흥미로운 것</h3>
+      <p class="sub">인상 깊었던 개념·경험 (누가)</p>
+      <ul>
+        <li><span class="tag hong">홍섭</span>output-styles 기능 대신 <b>플러그인 + SessionStart 훅</b> 경로로 이미 출력 성형 중</li>
+        <li><span class="tag jae">재윤</span>바이너리를 <code>strings</code>로 떠서 5종·<code>keep-coding-instructions</code>·플러그인 키까지 교차검증</li>
+        <li><span class="tag jae">재윤</span>상태 표시줄 해부 — <code>IJ_</code> 변수에 IntelliJ Dracula, 프롬프트↔결과 불일치를 실측으로 발견</li>
+        <li><span class="tag jun">준호</span>"CLAUDE.md는 희석된다"를 <b>틀렸다</b>고 교정 + "조립 1회 vs 전송 매턴" 분리</li>
+        <li><span class="tag jun">준호</span>출력 스타일 ≠ structured output(<code>--json-schema</code>=디코딩 제약), "스타일로 JSON 강제"는 안티패턴</li>
+      </ul>
+    </div>
+    <div class="lens split">
+      <h3>갈린 관점</h3>
+      <p class="sub">같은 걸 다르게 봄</p>
+      <ul>
+        <li><b>커스텀 스타일 만들까</b> — 홍섭: 도입 계획(코드/이력서/면접) / 재윤: 만들지 않기로(CLAUDE.md 중복·팀 합의 사안)</li>
+        <li><b>말투 바꾸는 경로</b> — 홍섭: 이미 <b>플러그인 경로</b> / 재윤·준호: <b>output-style 기능 자체</b>를 분석</li>
+        <li><b>"SWE 지침 제거"의 확실성</b> — 준호: 단정("가장 큰 함정") / 재윤: 미확정(각주, 적용 범위 실행검증 안 함)</li>
+        <li><b>상태 표시줄 비중</b> — 재윤 5:5(실물이 상태줄뿐) / 준호 확장 주제 / 홍섭 안 다룸</li>
+      </ul>
+    </div>
+    <div class="lens dig">
+      <h3>팀이 더 팔 것</h3>
+      <p class="sub">미해결·궁금 (역질문 모음)</p>
+      <ul>
+        <li><span class="tag hong">홍섭</span>출력 토큰 절약 — <b>플러그인 경로 vs 커스텀 출력 스타일</b> 뭐가 유리한가</li>
+        <li><span class="tag jae">재윤</span>"custom 시 SWE 지침 제거"가 내장 4종에도? / <code>/output-styles</code> 실동작 / <code>statusLineHealthLatches</code></li>
+        <li><span class="tag jun">준호</span>output style을 <code>-p</code> 모드서 쓸 수 있나(문서 명시 없음, 실험) / <code>keep-coding-instructions:false</code> 기본이 합리적인가</li>
+        <li><span class="tag team">팀</span>프로젝트 수준 스타일은 팀 시스템 프롬프트 대체 → 우리 레포에 하나 만들까 말까(합의 안건)</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    출처: <a href="https://code.claude.com/docs/en/output-styles">output-styles</a> ·
+    <a href="https://code.claude.com/docs/en/statusline">statusline</a> ·
+    <a href="https://code.claude.com/docs/en/headless">headless</a> ·
+    <a href="https://code.claude.com/docs/en/context-window">context-window</a><br>
+    버전 의존 사실(5종·deprecation 타임라인 등)은 2026-09 기준 실측·공식문서 확인값. '미확정' 표시 항목은 실행 검증 전.
+  </footer>
+
+</div>
+</body>
+</html>
