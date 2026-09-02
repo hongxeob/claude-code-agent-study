@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ch5. 출력 인터페이스 — 실전 에이전틱 코딩 스터디</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --paper:#EEF1F4;
+  --panel:#FFFFFF;
+  --ink:#141F2B;
+  --ink-2:#41525F;
+  --ink-3:#7C8B98;
+  --line:#D3DAE1;
+
+  /* 계층 = 색. 장식이 아니라 의미 */
+  --sys:#5B2C6F;        /* 시스템 프롬프트 층 */
+  --sys-bg:#F2EBF5;
+  --conv:#1B6B8C;       /* 대화 층 */
+  --conv-bg:#E6F0F5;
+  --sep:#7C8B98;        /* 별도 컨텍스트 */
+
+  /* diff 의미색 */
+  --del:#A33A3A;
+  --del-bg:#FBEDED;
+  --add:#2F6B45;
+  --add-bg:#EAF3ED;
+  --warn:#8A5A00;
+  --warn-bg:#FBF2DF;
+
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:"Pretendard","Pretendard Variable",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+
+/* ---------- 무대 ---------- */
+.stage{
+  position:fixed; inset:0;
+  display:grid; place-items:center;
+  padding:24px;
+}
+.deck{
+  position:relative;
+  width:min(100%, 1280px);
+  aspect-ratio:16/9;
+  max-height:calc(100vh - 48px);
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:2px;
+  box-shadow:0 1px 0 rgba(20,31,43,.06), 0 18px 48px -28px rgba(20,31,43,.4);
+  overflow:hidden;
+}
+
+.slide{
+  position:absolute; inset:0;
+  display:none;
+  padding:56px 64px 60px 108px;
+  overflow:hidden;
+}
+.slide.is-live{display:block}
+
+/* ---------- 계층 레일 : 이 발표의 구조 장치 ---------- */
+.rail{
+  position:absolute; left:0; top:0; bottom:0; width:56px;
+  border-right:1px solid var(--line);
+  display:flex; flex-direction:column;
+  background:#F7F9FA;
+}
+.rail-seg{
+  flex:1; position:relative;
+  display:flex; align-items:center; justify-content:center;
+}
+.rail-seg + .rail-seg{border-top:1px solid var(--line)}
+.rail-seg span{
+  writing-mode:vertical-rl;
+  font-size:11px; letter-spacing:.12em;
+  color:var(--ink-3);
+  transition:color .18s ease;
+}
+.rail-seg::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+  background:transparent; transition:background .18s ease;
+}
+.deck[data-layer="system"] .rail-seg[data-seg="system"]::before{background:var(--sys)}
+.deck[data-layer="system"] .rail-seg[data-seg="system"] span{color:var(--sys)}
+.deck[data-layer="conv"] .rail-seg[data-seg="conv"]::before{background:var(--conv)}
+.deck[data-layer="conv"] .rail-seg[data-seg="conv"] span{color:var(--conv)}
+.deck[data-layer="sep"] .rail-seg[data-seg="sep"]::before{background:var(--sep)}
+.deck[data-layer="sep"] .rail-seg[data-seg="sep"] span{color:var(--ink-2)}
+
+/* ---------- 타이포 ---------- */
+.kicker{
+  font-size:13px; color:var(--ink-3);
+  margin:0 0 10px;
+}
+h1{
+  font-size:60px; font-weight:800; letter-spacing:-.03em;
+  line-height:1.1; margin:0 0 20px;
+}
+h2{
+  font-size:36px; font-weight:750; letter-spacing:-.025em;
+  line-height:1.2; margin:0 0 6px;
+}
+.sub{
+  font-size:17px; color:var(--ink-2); margin:0 0 28px; max-width:72ch;
+}
+p{margin:0 0 14px; max-width:76ch}
+strong{font-weight:700}
+code{
+  font-family:var(--mono); font-size:.9em;
+  background:#F0F3F5; border:1px solid var(--line);
+  padding:1px 5px; border-radius:3px;
+}
+.lead{font-size:22px; line-height:1.5; max-width:60ch}
+.big{font-size:30px; font-weight:700; letter-spacing:-.02em; line-height:1.35; max-width:26ch}
+
+/* ---------- 공통 블록 ---------- */
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:20px}
+
+table{border-collapse:collapse; width:100%; font-size:15px}
+th,td{
+  text-align:left; padding:9px 12px;
+  border-bottom:1px solid var(--line);
+  vertical-align:top;
+}
+th{font-weight:700; font-size:13px; color:var(--ink-2); border-bottom-width:2px}
+td.num{font-variant-numeric:tabular-nums}
+
+.card{
+  border:1px solid var(--line); background:#FAFBFC;
+  padding:18px 20px;
+}
+.card h3{margin:0 0 8px; font-size:17px; font-weight:700}
+.card p{font-size:14.5px; color:var(--ink-2); margin:0}
+
+.callout{
+  border-left:4px solid var(--warn); background:var(--warn-bg);
+  padding:14px 18px; margin:18px 0; font-size:16px;
+}
+.callout.sys{border-left-color:var(--sys); background:var(--sys-bg)}
+.callout.del{border-left-color:var(--del); background:var(--del-bg)}
+.callout strong{color:inherit}
+
+pre{
+  font-family:var(--mono); font-size:14px; line-height:1.65;
+  background:#F7F9FA; border:1px solid var(--line);
+  padding:16px 18px; margin:0 0 16px; overflow:auto;
+  white-space:pre;
+}
+pre.tight{font-size:13px; line-height:1.55}
+
+/* ---------- diff (하이라이트) ---------- */
+.diff{
+  font-family:var(--mono); font-size:14.5px; line-height:1.9;
+  border:1px solid var(--line); background:#FBFCFD;
+}
+.diff div{padding:0 16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.diff .d{background:var(--del-bg); color:var(--del)}
+.diff .a{background:var(--add-bg); color:var(--add)}
+.diff .h{background:#EDF1F4; color:var(--ink-3); font-size:13px}
+
+/* ---------- 계층 스택 다이어그램 ---------- */
+.stack{display:flex; flex-direction:column; gap:10px; max-width:640px}
+.layer{border:1px solid var(--line); padding:14px 18px; background:#FAFBFC; position:relative}
+.layer::before{content:""; position:absolute; left:0; top:0; bottom:0; width:5px}
+.layer.l-sys::before{background:var(--sys)}
+.layer.l-conv::before{background:var(--conv)}
+.layer.l-sep::before{background:var(--sep)}
+.layer h4{margin:0 0 6px; font-size:15px; font-weight:700}
+.layer ul{margin:0; padding-left:18px; font-size:14px; color:var(--ink-2)}
+.layer li{margin:2px 0}
+.layer .flag{
+  position:absolute; right:16px; top:14px;
+  font-size:12px; font-weight:700; color:var(--sys);
+}
+
+/* ---------- 타임라인 ---------- */
+.tl{list-style:none; margin:0; padding:0; border-left:2px solid var(--line); margin-left:10px}
+.tl li{position:relative; padding:0 0 20px 28px}
+.tl li::before{
+  content:""; position:absolute; left:-7px; top:7px;
+  width:12px; height:12px; border-radius:50%;
+  background:var(--panel); border:2px solid var(--ink-3);
+}
+.tl li.hit::before{border-color:var(--del); background:var(--del)}
+.tl li.win::before{border-color:var(--add); background:var(--add)}
+.tl b{display:block; font-size:16px}
+.tl span{font-size:14.5px; color:var(--ink-2)}
+
+/* ---------- 단계 ---------- */
+.steps{display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:1px solid var(--line)}
+.steps > div{padding:16px 18px; border-right:1px solid var(--line)}
+.steps > div:last-child{border-right:0}
+.steps b{display:block; font-size:15px; margin-bottom:6px}
+.steps p{font-size:13.5px; color:var(--ink-2); margin:0}
+.steps .n{font-family:var(--mono); font-size:12px; color:var(--ink-3); display:block; margin-bottom:8px}
+
+ul.plain{margin:0 0 14px; padding-left:20px}
+ul.plain li{margin:6px 0; max-width:74ch}
+
+.tag{
+  display:inline-block; font-size:12px; font-weight:700;
+  padding:2px 8px; border:1px solid currentColor; border-radius:2px;
+  vertical-align:middle;
+}
+.tag.sys{color:var(--sys)} .tag.conv{color:var(--conv)}
+.tag.del{color:var(--del)} .tag.add{color:var(--add)}
+
+.muted{color:var(--ink-3)}
+.strike{text-decoration:line-through; color:var(--ink-3)}
+
+/* ---------- 표지 ---------- */
+.cover{padding-left:108px; display:flex; flex-direction:column; justify-content:center; height:100%}
+.cover .meta{margin-top:32px; font-size:14px; color:var(--ink-3); line-height:1.9}
+.cover .rule{width:64px; height:4px; background:var(--sys); margin:0 0 28px}
+
+/* ---------- 섹션 구분 슬라이드 ---------- */
+.act{display:flex; flex-direction:column; justify-content:center; height:100%}
+.act .n{font-family:var(--mono); font-size:14px; color:var(--ink-3); margin-bottom:12px}
+
+/* ---------- 하단 바 ---------- */
+.hud{
+  position:absolute; left:108px; right:64px; bottom:20px;
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-size:12px; color:var(--ink-3);
+  border-top:1px solid var(--line); padding-top:10px;
+  pointer-events:none;
+}
+.hud .t{font-weight:600; color:var(--ink-2)}
+.hud .c{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+/* ---------- 조작 ---------- */
+.nav{
+  position:fixed; right:20px; bottom:20px;
+  display:flex; gap:8px; z-index:10;
+}
+.nav button{
+  font:inherit; font-size:13px;
+  background:var(--panel); color:var(--ink-2);
+  border:1px solid var(--line); border-radius:2px;
+  padding:7px 14px; cursor:pointer;
+}
+.nav button:hover{background:#F0F3F5}
+.nav button:focus-visible{outline:2px solid var(--sys); outline-offset:2px}
+
+.help{
+  position:fixed; left:20px; bottom:22px; z-index:10;
+  font-size:12px; color:var(--ink-3);
+}
+kbd{
+  font-family:var(--mono); font-size:11px;
+  border:1px solid var(--line); background:var(--panel);
+  border-radius:3px; padding:1px 5px;
+}
+
+@media (max-width:900px){
+  .slide{padding:32px 28px 52px 76px}
+  .rail{width:40px}
+  h1{font-size:38px} h2{font-size:26px}
+  .grid2,.grid3,.steps{grid-template-columns:1fr}
+  .steps > div{border-right:0; border-bottom:1px solid var(--line)}
+  .hud{left:76px; right:28px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none !important}
+}
+@media print{
+  body{overflow:visible}
+  .stage{position:static; padding:0; display:block}
+  .deck{width:100%; max-height:none; box-shadow:none; page-break-after:always}
+  .slide{position:static; display:block !important; page-break-after:always}
+  .nav,.help{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="deck" id="deck">
+    <div class="rail" aria-hidden="true">
+      <div class="rail-seg" data-seg="system"><span>시스템 프롬프트</span></div>
+      <div class="rail-seg" data-seg="conv"><span>대화</span></div>
+      <div class="rail-seg" data-seg="sep"><span>별도 컨텍스트</span></div>
+    </div>
+
+<!-- 1 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="표지">
+  <div class="cover">
+    <div class="rule"></div>
+    <p class="kicker">실전 에이전틱 코딩 스터디 · 5주차</p>
+    <h1>출력 인터페이스</h1>
+    <p class="lead">출력 스타일은 형식을 바꾸는 기능이 아니다.<br>Claude Code의 시스템 프롬프트를 직접 고쳐 쓴다.</p>
+    <div class="meta">
+      Chapter 5 · Output Interface<br>
+      기준 — Claude Code 공식문서 (code.claude.com/docs), 2026-09 확인
+    </div>
+  </div>
+</section>
+
+<!-- 2 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="결론 먼저">
+  <p class="kicker">결론 먼저</p>
+  <h2>오늘 가져갈 두 문장</h2>
+  <div style="margin-top:36px">
+    <div class="callout sys" style="font-size:24px; line-height:1.5; padding:22px 26px">
+      <strong>하나.</strong> 출력 스타일은 응답의 겉모습이 아니라
+      Claude Code의 <strong>시스템 프롬프트를 대체</strong>한다.
+    </div>
+    <div class="callout del" style="font-size:24px; line-height:1.5; padding:22px 26px">
+      <strong>둘.</strong> 그리고 <strong>책에 적힌 조작법의 절반은 지금 동작하지 않는다.</strong>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:24px">두 번째부터 확인하고, 왜 그렇게 됐는지를 따라간다.</p>
+</section>
+
+<!-- 3 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="계층">
+  <h2>커스터마이징 수단은 여럿, 차이는 계층</h2>
+  <p class="sub">같은 문장이라도 어느 층에 넣느냐가 강제력을 결정한다.</p>
+  <div class="stack">
+    <div class="layer l-sys">
+      <span class="flag">여기가 오늘의 주제</span>
+      <h4>시스템 프롬프트</h4>
+      <ul>
+        <li>내장 엔지니어링 지시문 (기본값)</li>
+        <li><strong>Output Style</strong> — 이 층을 대체할 수 있는 유일한 수단</li>
+        <li><code>--append-system-prompt</code> / <code>--system-prompt</code> (headless)</li>
+      </ul>
+    </div>
+    <div class="layer l-conv">
+      <h4>대화</h4>
+      <ul>
+        <li>CLAUDE.md — 유저 메시지로 주입, 덧붙이기만 가능</li>
+        <li>Skills / Slash commands — 호출 시점에 주입</li>
+      </ul>
+    </div>
+    <div class="layer l-sep">
+      <h4>별도 컨텍스트</h4>
+      <ul>
+        <li>Subagents — 자체 시스템 프롬프트로 분리 실행</li>
+      </ul>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:18px; font-size:14px">왼쪽 레일이 지금 어느 층 이야기인지 표시합니다.</p>
+</section>
+
+<!-- 4 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="역할 분리">
+  <h2>무엇을 어디에 넣을 것인가</h2>
+  <p class="sub">공식문서가 명시적으로 선을 긋는 지점. 프로젝트 규약과 코드베이스 지시는 CLAUDE.md로 가야 한다.</p>
+  <table>
+    <thead><tr><th style="width:26%">목적</th><th style="width:26%">수단</th><th>성질</th></tr></thead>
+    <tbody>
+      <tr><td>지식 · 컨텍스트 주입</td><td>CLAUDE.md</td><td>덧붙이기만 가능</td></tr>
+      <tr><td>워크플로</td><td>Skill / Slash command</td><td>호출할 때만 주입</td></tr>
+      <tr><td><strong>역할 · 톤 · 출력 형식</strong></td><td><strong>Output Style</strong></td><td><strong>기존 지시문을 들어낼 수 있음</strong></td></tr>
+      <tr><td>작업 격리</td><td>Subagent</td><td>부모와 분리된 컨텍스트</td></tr>
+    </tbody>
+  </table>
+  <div class="callout sys" style="margin-top:26px">
+    출력 스타일은 Claude가 <strong>무엇을 아는지</strong>가 아니라 <strong>어떻게 응답하는지</strong>를 바꾼다.<br>
+    <span class="muted" style="font-size:14.5px">매 턴 같은 voice나 format을 반복해 요구하고 있다면, 그때가 쓸 때다.</span>
+  </div>
+</section>
+
+<!-- 5 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="책 vs 문서">
+  <p class="kicker">2막 · 하이라이트</p>
+  <h2>책과 공식문서의 차이</h2>
+  <p class="sub">책은 v1.x~v2.0 기준. 아래 8줄이 지금은 다르게 동작한다.</p>
+  <div class="diff">
+    <div class="h">--- 책 (v1.x~v2.0)&nbsp;&nbsp;&nbsp;+++ 공식문서 (2026-09)</div>
+    <div class="d">- /output-style explanatory 로 전환</div>
+    <div class="a">+ v2.1.91에서 명령 제거 → /config 또는 outputStyle 설정</div>
+    <div class="d">- /output-style:new 로 스타일 생성</div>
+    <div class="a">+ 문서에서 사라짐 → 마크다운 파일 직접 작성</div>
+    <div class="d">- 내장 스타일 3종 (Default / Explanatory / Learning)</div>
+    <div class="a">+ 5종 (+ Proactive, Concise)</div>
+    <div class="d">- 프론트매터 name, description</div>
+    <div class="a">+ keep-coding-instructions, force-for-plugin 추가</div>
+    <div class="d">- 저장 위치 user / project 2곳</div>
+    <div class="a">+ managed policy 포함 3곳 + 플러그인 배포</div>
+    <div class="d">- 커스텀 스타일은 코딩 지시문을 제외 (고정)</div>
+    <div class="a">+ keep-coding-instructions: true 로 유지 선택 가능</div>
+    <div class="d">- 스타일 전환이 즉시 적용되는 뉘앙스</div>
+    <div class="a">+ 세션 시작 1회 조립 → /clear 필요</div>
+    <div class="d">- 서브에이전트 언급 없음</div>
+    <div class="a">+ 서브에이전트에는 미적용, fork만 예외</div>
+  </div>
+</section>
+
+<!-- 6 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="사라진 것">
+  <h2>사라진 것 — 명령어</h2>
+  <div class="grid2" style="margin-top:24px">
+    <div>
+      <p class="tag del">제거됨</p>
+      <pre class="tight">/output-style explanatory
+/output-style:new</pre>
+      <p class="muted">v2.1.73 deprecated → <strong>v2.1.91 제거</strong></p>
+    </div>
+    <div>
+      <p class="tag add">현재</p>
+      <pre class="tight">/config
+  └ Output style 메뉴에서 선택
+
+// 또는 설정 파일 직접
+{ "outputStyle": "Explanatory" }</pre>
+      <p class="muted">터미널에서 고르면 <code>.claude/settings.local.json</code>에 저장</p>
+    </div>
+  </div>
+  <div class="callout">
+    <strong>기능이 사라진 게 아니라 명령만 사라졌다.</strong>
+    스타일 생성도 마법사가 없어졌을 뿐, 마크다운 파일을 직접 쓰면 된다.
+    <br><span class="muted" style="font-size:14.5px">데스크톱 앱에서는 <code>/config</code> 대신 Settings &gt; Claude Code가 열리므로 파일을 직접 편집.</span>
+  </div>
+</section>
+
+<!-- 7 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="늘어난 것">
+  <h2>늘어난 것 — 통제 범위</h2>
+  <div class="grid3" style="margin-top:22px">
+    <div class="card">
+      <h3>스타일 3종 → 5종</h3>
+      <p>Proactive, Concise 추가.<br>Concise는 <code>v2.1.237+</code></p>
+    </div>
+    <div class="card">
+      <h3>keep-coding-instructions</h3>
+      <p>내장 엔지니어링 지시문을 남길지 고를 수 있게 됐다. 기본값은 <strong>false</strong></p>
+    </div>
+    <div class="card">
+      <h3>managed policy · 플러그인</h3>
+      <p>조직 전체 배포와 <code>force-for-plugin</code> 강제 적용</p>
+    </div>
+  </div>
+  <p style="margin-top:28px" class="big">한 번 deprecated 됐던 기능이<br>오히려 더 커져서 돌아왔다.</p>
+  <p class="muted">그 사연은 15번 슬라이드에서.</p>
+</section>
+
+<!-- 8 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="대체 vs 추가">
+  <p class="kicker">핵심 개념 1/4</p>
+  <h2>커스텀 스타일은 추가가 아니라 대체다</h2>
+  <div class="callout del">
+    커스텀 출력 스타일은 <code>keep-coding-instructions: true</code>를 켜지 않는 한,
+    내장된 <strong>소프트웨어 엔지니어링 지시문을 빼버린다.</strong>
+  </div>
+  <div class="grid2">
+    <div>
+      <p style="font-weight:700; margin-bottom:8px">사라지는 것</p>
+      <ul class="plain muted">
+        <li>변경 범위를 어떻게 잡을지</li>
+        <li>주석을 어떻게 쓸지</li>
+        <li>작업을 어떻게 검증할지</li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:700; margin-bottom:8px">나타나는 증상</p>
+      <ul class="plain">
+        <li>변경을 반쯤 하다 만다</li>
+        <li>검증을 건너뛴다</li>
+        <li>엉뚱한 곳에 주석을 단다</li>
+        <li><strong>경고가 뜨지 않는다</strong></li>
+      </ul>
+    </div>
+  </div>
+  <p style="margin-top:8px">모델 문제가 아니라 스타일이 지시문을 지운 것이다. 페르소나 스타일을 하나 만든 직후 코딩 품질이 떨어졌다면 이걸 의심한다.</p>
+  <pre style="margin-top:4px">keep-coding-instructions: true   # 이 한 줄로 방지</pre>
+</section>
+
+<!-- 9 ─────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="조립 1회 / 전송 매 턴">
+  <p class="kicker">핵심 개념 2/4</p>
+  <h2>조립은 1회, 전송은 매 턴</h2>
+  <p class="sub">LLM API는 stateless다. 모델은 이전 대화를 기억하지 못하고, 매 요청을 처음 보듯 받는다.</p>
+  <div class="grid2">
+    <div>
+      <p class="tag conv">전송 — 매 턴</p>
+      <pre class="tight">1턴: [시스템] + [유저1]
+2턴: [시스템] + [유저1][응답1] + [유저2]
+3턴: [시스템] + [유저1][응답1]
+              + [유저2][응답2] + [유저3]
+      ^^^^^^^^
+      매번 똑같이 맨 앞에</pre>
+    </div>
+    <div>
+      <p class="tag sys">조립 — 1회</p>
+      <pre class="tight">세션 시작
+  └ 파일 읽기 → 문자열 조립   ← 1회
+      ├ 1턴: [조립된 문자열] 전송
+      ├ 2턴: [조립된 문자열] 전송
+      └ 3턴: [조립된 문자열] 전송</pre>
+    </div>
+  </div>
+  <div class="callout">
+    세션 중간에 <code>outputStyle</code>을 바꿔도 안 먹히는 이유 — 전송이 안 돼서가 아니라
+    <strong>이미 만들어진 문자열이 계속 쓰이기 때문.</strong> 그래서 <code>/clear</code>가 필요하다.
+    <br><span class="muted" style="font-size:14.5px">"저장은 했는데 안 바뀐다"의 대부분이 이것.</span>
+  </div>
+</section>
+
+<!-- 10 ────────────────────────────────────────── -->
+<section class="slide" data-layer="sep" data-title="메인 루프 한정">
+  <p class="kicker">핵심 개념 3/4</p>
+  <h2>메인 에이전트 루프에만 적용된다</h2>
+  <p class="sub">서브에이전트는 자기 시스템 프롬프트로 돌기 때문에 출력 스타일의 영향을 받지 않는다. 예외는 fork — 부모의 전체 시스템 프롬프트를 그대로 상속하기 때문.</p>
+  <table style="max-width:820px">
+    <thead><tr><th style="width:34%">실행 주체</th><th>출력 스타일 적용</th></tr></thead>
+    <tbody>
+      <tr><td>메인 세션</td><td><span class="tag add">적용</span></td></tr>
+      <tr><td>Subagent</td><td><span class="tag del">미적용</span> — 자체 시스템 프롬프트</td></tr>
+      <tr><td>Fork</td><td><span class="tag add">적용</span> — 부모 시스템 프롬프트 상속</td></tr>
+    </tbody>
+  </table>
+  <div class="callout" style="margin-top:28px">
+    <strong>실무 함의.</strong> "코드리뷰는 무조건 표 형식으로" 스타일을 만들어도,
+    리뷰를 서브에이전트에 위임하는 순간 포맷이 깨진다.
+  </div>
+</section>
+
+<!-- 11 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="토큰과 캐시">
+  <p class="kicker">핵심 개념 4/4</p>
+  <h2>매 턴 다시 보내면 매 턴 다시 과금되나</h2>
+  <div class="grid2">
+    <div>
+      <h3 style="font-size:18px; margin:0 0 10px">입력</h3>
+      <p>시스템 프롬프트에 지시가 늘어나니 토큰도 는다. 다만 시스템 프롬프트는
+      <strong>내용이 동일하고 위치가 맨 앞</strong>이라 캐시가 가장 잘 걸리는 조건이다.</p>
+      <p>첫 요청에서 cache write, 이후로는 cache read. 문서도 세션 첫 요청 이후에는 프롬프트 캐싱이 비용을 줄여준다고 적고 있다.</p>
+    </div>
+    <div>
+      <h3 style="font-size:18px; margin:0 0 10px">출력</h3>
+      <p>Explanatory · Learning은 설계상 Default보다 <strong>긴 응답</strong>을 만든다. Concise는 반대.</p>
+      <p class="muted">원격 · 저대역폭 환경에서는 이게 취향이 아니라 대기시간 문제가 된다.</p>
+    </div>
+  </div>
+  <div class="callout sys" style="margin-top:22px">
+    <strong>맨 앞에 있다는 것의 양면.</strong>
+    캐시가 잘 걸리는 자리이면서, 동시에 <strong>바꾸면 그 뒤 전부가 무효화되는 자리</strong>이기도 하다.
+    모델을 바꿀 때 캐시 경고가 뜨는 이유가 같다.
+  </div>
+</section>
+
+<!-- 12 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="내장 5종">
+  <h2>내장 스타일 5종</h2>
+  <table style="font-size:14.5px">
+    <thead><tr><th style="width:14%">스타일</th><th style="width:56%">동작</th><th>쓸 때</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Default</strong></td><td>기존 엔지니어링 시스템 프롬프트</td><td>기본</td></tr>
+      <tr><td><strong>Proactive</strong></td><td>즉시 실행. 사소한 결정은 멈춰 묻는 대신 가정하고, 계획보다 행동을 선호. <strong>permission mode는 건드리지 않는다</strong> — 무엇이 승인 없이 실행되는지는 여전히 permission mode가 결정</td><td>반복적 · 저위험 작업</td></tr>
+      <tr><td><strong>Concise</strong></td><td>결론부터, 서론과 중계 설명 생략. 단 엔지니어링 작업 자체는 Default만큼 철저하고, 에러 · 보안 경고 · 파괴적 작업 확인은 항상 전문 유지 <span class="muted">(v2.1.237+)</span></td><td>숙련자 일상 개발</td></tr>
+      <tr><td><strong>Explanatory</strong></td><td>작업 중간에 교육적 Insights를 삽입해 구현 선택과 코드베이스 패턴을 이해시킴</td><td>온보딩, 낯선 레포</td></tr>
+      <tr><td><strong>Learning</strong></td><td>Insights 공유에 더해 <strong>작고 전략적인 코드 조각을 직접 짜라고 요구.</strong> 코드에 <code>TODO(human)</code> 마커를 남김</td><td>학습, 스터디</td></tr>
+    </tbody>
+  </table>
+  <div class="callout" style="margin-top:20px">
+    <strong>우리 스터디에 바로 쓸 수 있는 것 —</strong> Learning 모드의 <code>TODO(human)</code>.
+    담당 파트를 마커로 남기게 하고 다음 주에 채워오는 방식으로 돌릴 수 있다.
+  </div>
+</section>
+
+<!-- 13 ────────────────────────────────────────── -->
+<section class="slide" data-layer="conv" data-title="역할 라벨">
+  <p class="kicker">4막 · 계층은 왜 대체 불가능한가</p>
+  <h2>시스템 프롬프트 vs CLAUDE.md</h2>
+  <div class="callout del">
+    <strong>먼저 오해 하나.</strong> "CLAUDE.md는 대화가 길어지면 뒤로 밀려서 희석된다" — <strong>틀렸다.</strong>
+    시스템 프롬프트가 0번, CLAUDE.md가 1번. 둘 다 맨 앞이고, 생성 지점으로부터의 거리는 똑같이 멀어진다.
+    <strong>위치로는 둘을 구분할 수 없다.</strong>
+  </div>
+  <p>차이를 만드는 건 위치가 아니라 <strong>역할 라벨</strong>이다. 시스템 프롬프트는 <code>system</code>이라는 별도 필드로, 메시지 배열 안에 있지도 않다.</p>
+  <table style="max-width:840px">
+    <thead><tr><th style="width:20%">역할</th><th>모델이 받아들이는 방식</th></tr></thead>
+    <tbody>
+      <tr><td><code>system</code></td><td>운영자가 정한, 협상 불가능한 설정</td></tr>
+      <tr><td><code>user</code></td><td>사용자의 요청 — 밀어낼 수도, 우선순위를 낮출 수도 있는 대상</td></tr>
+    </tbody>
+  </table>
+  <p class="muted" style="margin-top:14px; font-size:14px">※ 이 항목은 공식문서 서술이 아니라 LLM API 구조상의 일반론이다.</p>
+</section>
+
+<!-- 14 ────────────────────────────────────────── -->
+<section class="slide" data-layer="conv" data-title="컴팩션 생존">
+  <h2>컴팩션에서는 CLAUDE.md가 오히려 강하다</h2>
+  <p class="sub">직관과 반대인 사실. 루트 CLAUDE.md는 새 윈도우로 다시 읽혀 들어와 그대로 복구된다.</p>
+  <table>
+    <thead><tr><th style="width:38%">대상</th><th>컴팩션 이후</th></tr></thead>
+    <tbody>
+      <tr><td><strong>루트 CLAUDE.md</strong></td><td><span class="tag add">생존</span> 재주입됨</td></tr>
+      <tr><td><strong>스코프 룰</strong> <span class="muted">(<code>paths:</code> 프론트매터)</span></td><td><span class="tag del">소실</span> 뭔가가 다시 트리거해야 돌아옴 — 다음 행동이 스코프에 안 맞으면 <strong>방금까지 따르던 규칙 없이 움직인다</strong></td></tr>
+      <tr><td>대화 중에 타이핑한 지시</td><td><span class="tag del">소실</span> 요약이 남긴 만큼만</td></tr>
+      <tr><td>hook · 도구 출력으로 주입된 컨텍스트</td><td><span class="tag del">소실</span> 원문은 사라지고 패러프레이즈만</td></tr>
+      <tr><td>Skill 본문</td><td>재주입되나 크면 <strong>잘림</strong> — 앞부분을 남기므로 중요한 지시는 위쪽에</td></tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <strong>규칙을 수명으로 분류하라.</strong> 세션 전체에 걸쳐야 하는 것은 루트 CLAUDE.md로.
+    스코프 룰은 에이전트가 다시 발견해도 되는 파일별 디테일용이지 불변식용이 아니다.
+    <br><span class="muted" style="font-size:14.5px">검증법 — <code>/compact</code>를 수동으로 돌리고 신경 쓰는 규칙을 아직 지키는지 본다.</span>
+  </div>
+</section>
+
+<!-- 15 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="deprecation 소동">
+  <h2>Deprecation 소동, 그리고 교훈</h2>
+  <div class="grid2" style="grid-template-columns:1.1fr 1fr; gap:36px">
+    <ul class="tl">
+      <li><b>v1.0.81 <span class="muted">2025-08</span></b><span>출력 스타일 도입</span></li>
+      <li class="hit"><b>v2.0.30</b><span>Anthropic이 deprecated 처리. "CLAUDE.md나 plugin을 대신 쓰라"</span></li>
+      <li><b>커뮤니티 반발</b><span>output style은 시스템 프롬프트의 일부를 override하기 때문에 효과가 있는 것이다. hook의 prompt injection은 몇 턴 지나면 힘을 잃는다 — <strong>같은 게 아니다</strong></span></li>
+      <li class="win"><b>기능 존속, 오히려 확장</b><span>Proactive · Concise 추가, keep-coding-instructions 도입</span></li>
+      <li><b>v2.1.91</b><span><code>/output-style</code> 명령만 제거, 기능은 <code>/config</code>로 통합</span></li>
+    </ul>
+    <div style="align-self:center">
+      <p class="big" style="color:var(--sys)">시스템 프롬프트 계층과 대화 계층은 서로 대체 불가능하다.</p>
+      <p style="margin-top:16px">같은 텍스트를 <strong>어디에 넣느냐</strong>가 곧 강제력의 차이다. 13·14번 슬라이드가 그 메커니즘이었다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 16 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="실습">
+  <p class="kicker">5막 · 써먹기</p>
+  <h2>커스텀 스타일 만들기</h2>
+  <div class="steps" style="margin-bottom:22px">
+    <div><span class="n">STEP 1</span><b>파일</b><p><code>.claude/output-styles/</code>에 <code>.md</code> 작성. 바로 아래여야 하고 하위 디렉터리는 안 된다</p></div>
+    <div><span class="n">STEP 2</span><b>프론트매터</b><p><code>keep-coding-instructions</code>를 먼저 결정</p></div>
+    <div><span class="n">STEP 3</span><b>설정 + /clear</b><p><code>/config</code>에서 선택 후 <strong>반드시 재시작</strong></p></div>
+    <div><span class="n">STEP 4</span><b>검증</b><p>안 보이면 재시작, 그다음 <code>claude doctor</code></p></div>
+  </div>
+  <div class="grid2">
+    <pre class="tight">---
+name: Diagrams first
+description: Lead with a diagram
+keep-coding-instructions: true
+---
+
+When explaining code, architecture, or
+data flow, start with a Mermaid diagram
+showing the structure, then explain.
+
+## Diagram conventions
+Use `flowchart TD` for control flow and
+`sequenceDiagram` for request paths.
+Keep diagrams under 15 nodes.</pre>
+    <table style="font-size:14px">
+      <thead><tr><th>증상</th><th>원인</th></tr></thead>
+      <tbody>
+        <tr><td>피커에 안 보임</td><td>재시작 안 함 / 경로 · 확장자</td></tr>
+        <tr><td>settings가 선택 못 함</td><td><code>name</code>과 <strong>대소문자까지</strong> 불일치</td></tr>
+        <tr><td>위와 증상 같은데 원인 다름</td><td>JSON 문법 오류 → <code>claude doctor</code></td></tr>
+        <tr><td>모노레포에서 엉뚱한 스타일</td><td>작업 디렉터리에 가장 가까운 것이 이긴다</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 17 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="잘 쓰는 법">
+  <h2>잘 만든 스타일의 조건 두 가지</h2>
+  <div class="grid2" style="margin-top:24px">
+    <div class="card">
+      <h3>1. 규칙이 기계적이다</h3>
+      <p style="margin-bottom:12px">"포인트당 한 줄", "em dash 금지", "caveat는 최대 하나, 마지막 줄에" — 검증할 수 있다.</p>
+      <p><span class="strike">"간결하게"</span> 는 검증할 수 없다.</p>
+    </div>
+    <div class="card">
+      <h3>2. 정직성을 예외 처리한다</h3>
+      <p style="margin-bottom:12px">간결함은 단어 수의 문제이므로, 실패 · 건너뛴 단계 · 검증 안 된 수치는 여전히 말하게 한다.</p>
+      <p>이 조항이 없으면 terse 스타일은 군더더기와 함께 <strong>caveat까지 버린다.</strong></p>
+    </div>
+  </div>
+  <p class="big" style="margin-top:32px">세어볼 수 있는 규칙으로 쓰고,<br>줄이면 안 되는 것을 명시적으로 남긴다.</p>
+  <div class="callout" style="margin-top:20px">
+    톤만 살짝 바꾸고 싶은 거라면 <strong>CLAUDE.md가 리스크가 낮은 선택</strong>이다.
+    내장 코딩 프롬프트를 절대 밀어내지 않으니까. 스타일 규칙은 CLAUDE.md에서도 동작한다.
+  </div>
+</section>
+
+<!-- 18 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="실무 적용">
+  <h2>어디에 쓸 것인가</h2>
+  <table style="font-size:14.5px">
+    <thead><tr><th style="width:26%">시나리오</th><th>방법</th></tr></thead>
+    <tbody>
+      <tr><td><strong>팀 표준 출력 포맷</strong></td><td><code>.claude/output-styles/</code>를 레포에 커밋. "아키텍처 설명은 다이어그램 먼저", "변경 요약에 영향 범위와 롤백 방법 포함". <code>keep-coding-instructions: true</code> 필수</td></tr>
+      <tr><td><strong>원격 · 저대역폭</strong></td><td>SSH · tmux에서는 Claude가 중계하는 모든 줄이 기다려야 하는 줄이고 스크롤백을 차지하는 줄이다. Concise가 체감 큼</td></tr>
+      <tr><td><strong>비엔지니어링 에이전트</strong></td><td>엔지니어링 지시문을 빼도 스크립트 실행 · 파일 읽기 쓰기 · TODO 추적 같은 코어 능력은 유지된다</td></tr>
+      <tr><td><strong>온보딩 · 사내 교육</strong></td><td>신규 입사자 프로젝트에 Explanatory · Learning을 기본값으로</td></tr>
+      <tr><td><strong>조직 차원 강제</strong></td><td>managed policy 배포, 플러그인 <code>force-for-plugin</code></td></tr>
+      <tr><td><strong>도메인 전문가 페르소나</strong></td><td>업계 표준 프레임워크와 용어, 구조화된 출력 패턴을 스타일에 내장</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 19 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="논점">
+  <h2>같이 이야기해볼 것</h2>
+  <ol style="font-size:19px; line-height:1.9; padding-left:24px; margin-top:26px; max-width:80ch">
+    <li>우리 레포에 커밋할 프로젝트 출력 스타일을 하나 만든다면, 어떤 규칙을 넣을까? <span class="muted">— 기계적으로 검증 가능한 형태로</span></li>
+    <li><code>keep-coding-instructions: false</code>가 기본값인 게 합리적인가?</li>
+    <li>CI에 붙일 때 <code>--bare</code> + <code>--json-schema</code> 조합을 우리 파이프라인 어디에 쓸 수 있을까?</li>
+    <li>출력 스타일이 <code>-p</code> 모드에서도 먹는가? <span class="tag del">문서에 명시 없음</span></li>
+    <li>우리 프로젝트 규칙 중 컴팩션을 넘어 살아남아야 하는 건 뭐고, 지금 어디에 들어 있나?</li>
+  </ol>
+</section>
+
+<!-- 20 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="정리">
+  <div class="act">
+    <p class="n">정리</p>
+    <h2 style="font-size:44px; margin-bottom:28px">한 문장으로</h2>
+    <p class="big" style="font-size:34px; max-width:34ch">
+      CLAUDE.md는 "이것도 알아둬",<br>
+      출력 스타일은 <span style="color:var(--sys)">"너는 이런 존재야"</span>.
+    </p>
+    <p style="margin-top:32px; max-width:64ch">
+      그래서 하나는 덧붙이기만 할 수 있고, 다른 하나는 기존 지시문을 들어낼 수 있다.
+      계층을 알면 어느 쪽에 무엇을 넣을지가 정해진다.
+    </p>
+    <p class="muted" style="margin-top:36px; font-size:14px">
+      부록 — Structured output과의 차이 · <code>claude -p</code>와 harness · Status line 원리 · 단축키
+    </p>
+  </div>
+</section>
+
+<!-- A1 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="부록 · structured output">
+  <p class="kicker">부록 A1</p>
+  <h2>출력 스타일 ≠ Structured output</h2>
+  <p class="sub">비슷해 보이지만 보장 수준이 완전히 다른 계층이다.</p>
+  <table style="max-width:900px">
+    <thead><tr><th style="width:22%"></th><th>Output style</th><th><code>--json-schema</code></th></tr></thead>
+    <tbody>
+      <tr><td>계층</td><td>시스템 프롬프트</td><td><strong>디코딩 제약</strong></td></tr>
+      <tr><td>강제력</td><td>없음 — 경향</td><td>스키마 준수</td></tr>
+      <tr><td>대상</td><td>사람이 읽는 대화</td><td>스크립트가 파싱할 데이터</td></tr>
+      <tr><td>모드</td><td>인터랙티브</td><td>headless (<code>-p</code>)</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:18px">진짜 structured output은 JSON 스키마를 <strong>문법으로 컴파일</strong>해 토큰 생성 단계에서 제약한다. 복잡한 스키마일수록 문법이 커져 API가 복잡도 제한을 걸어둘 정도.</p>
+  <div class="callout del">
+    <strong>안티패턴 — "출력 스타일로 JSON만 내보내게 하자".</strong>
+    스타일은 세션 프롬프트일 뿐이라 한 번씩 설명을 덧붙이면 파이프라인이 깨진다.
+    파싱할 데이터는 <code>--json-schema</code>, 사람이 읽을 화면은 output style.
+  </div>
+</section>
+
+<!-- A2 ────────────────────────────────────────── -->
+<section class="slide" data-layer="system" data-title="부록 · headless">
+  <p class="kicker">부록 A2</p>
+  <h2><code>claude -p</code>도 같은 harness다</h2>
+  <p class="sub">Agent SDK가 Claude Code를 구동하는 것과 동일한 도구 · 에이전트 루프 · 컨텍스트 관리를 제공한다. <code>--bare</code> 없이 돌리면 인터랙티브와 같은 컨텍스트를 로드한다.</p>
+  <table style="max-width:900px">
+    <thead><tr><th style="width:24%"></th><th>인터랙티브</th><th><code>-p</code></th></tr></thead>
+    <tbody>
+      <tr><td>권한 시작 모드</td><td>플랜별 기본값</td><td>모든 플랜에서 <strong>Manual</strong></td></tr>
+      <tr><td>workspace trust</td><td>다이얼로그</td><td><strong>없음</strong></td></tr>
+      <tr><td>슬래시 커맨드</td><td>전부</td><td>터미널 전용 제외</td></tr>
+    </tbody>
+  </table>
+  <div class="callout del" style="margin-top:22px">
+    <strong>CI 보안 포인트.</strong> <code>--bare</code> 없는 <code>-p</code>는 신뢰한 적 없는 폴더에서도
+    그 프로젝트의 <code>.claude/settings.json</code> hook을 실행하고 <code>.mcp.json</code> 서버에 연결한다.
+    trust 다이얼로그도, 서버별 승인 프롬프트도 없이.
+    <br><span class="muted" style="font-size:14.5px"><code>--bare</code>는 향후 릴리스에서 <code>-p</code>의 기본값이 될 예정. 단 OAuth · 키체인을 읽지 않으므로 <code>ANTHROPIC_API_KEY</code> 필요.</span>
+  </div>
+</section>
+
+<!-- A3 ────────────────────────────────────────── -->
+<section class="slide" data-layer="sep" data-title="부록 · status line">
+  <p class="kicker">부록 A3</p>
+  <h2>Status line — 또 하나의 출력 인터페이스</h2>
+  <p class="sub">모든 프로그램에는 입구(stdin)와 출구(stdout)가 하나씩 있다. <code>cat log.txt | grep error</code>에서 <code>|</code>가 앞의 출구를 뒤의 입구에 꽂는 것. 상태줄이 딱 그 구조다.</p>
+  <pre style="max-width:760px">Claude Code ──(세션 JSON)──> [내 스크립트] ──(텍스트)──> 상태줄
+                  stdin                        stdout</pre>
+  <div class="grid2">
+    <div>
+      <p><code>input=$(cat)</code> = 입구로 들어온 것 전부 읽기<br>
+      <code>echo "..."</code> = 출구로 내보내기</p>
+      <p><strong>API 토큰을 전혀 쓰지 않는다.</strong> 로컬 실행이다.</p>
+    </div>
+    <div>
+      <p style="font-weight:700; margin-bottom:6px">캐싱은 문서 권장사항</p>
+      <p style="font-size:14.5px">느리면 갱신이 막히고, 실행 중 새 갱신이 오면 취소되고, 출력이 없으면 상태줄이 빈칸이 된다. 300ms 디바운스.</p>
+    </div>
+  </div>
+  <div class="callout">
+    <strong>캐시 키 함정.</strong> <code>$$</code>나 <code>os.getpid()</code> 같은 프로세스 ID는
+    매 호출마다 바뀌어 캐시를 무력화한다. JSON의 <code>session_id</code>를 써라 —
+    세션 수명 동안 안정적이고 세션마다 고유하다.
+  </div>
+</section>
+
+<!-- A4 ────────────────────────────────────────── -->
+<section class="slide" data-layer="sep" data-title="부록 · 단축키">
+  <p class="kicker">부록 A4</p>
+  <h2>Esc Esc는 조건부다</h2>
+  <div class="grid2" style="margin-bottom:20px">
+    <div class="card"><h3>입력창에 텍스트가 있으면</h3><p>초안을 지우고 히스토리에 저장 — <kbd>↑</kbd>로 복원</p></div>
+    <div class="card"><h3>입력창이 비어 있으면</h3><p>rewind 메뉴 — 코드+대화 / 대화만 / 코드만</p></div>
+  </div>
+  <p class="muted" style="margin-top:-6px; margin-bottom:18px">심볼릭 · 하드 링크된 파일은 되감지 않고 건너뛰며 경고한다. dotfile 매니저가 심링크한 설정, pnpm이 하드링크한 파일이 해당.</p>
+  <div class="grid2" style="gap:32px">
+    <table style="font-size:14px">
+      <tbody>
+        <tr><td style="width:34%"><kbd>Esc</kbd></td><td>중단. 지금까지 작업은 유지</td></tr>
+        <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>권한 모드 순환</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>B</kbd></td><td>백그라운드로 (tmux는 두 번)</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>트랜스크립트 뷰어</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>편집기에서 프롬프트 열기</td></tr>
+      </tbody>
+    </table>
+    <table style="font-size:14px">
+      <tbody>
+        <tr><td style="width:34%"><kbd>Ctrl</kbd>+<kbd>R</kbd></td><td>히스토리 역방향 검색</td></tr>
+        <tr><td><kbd>!</kbd></td><td>셸 모드 — 출력을 컨텍스트에</td></tr>
+        <tr><td><code>/btw</code></td><td>히스토리에 안 남는 사이드 질문</td></tr>
+        <tr><td><kbd>?</kbd></td><td>단축키 도움말 (빈 입력에서)</td></tr>
+        <tr><td><kbd>\</kbd>+<kbd>Enter</kbd></td><td>멀티라인 입력</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted" style="margin-top:14px; font-size:14px"><kbd>Ctrl</kbd>+<kbd>C</kbd>는 중단용이 아니다. 중단은 <kbd>Esc</kbd>.</p>
+</section>
+
+    <div class="hud"><span class="t" id="hud-title"></span><span class="c" id="hud-count"></span></div>
+  </div>
+</div>
+
+<div class="help">
+  <kbd>←</kbd> <kbd>→</kbd> 이동 · <kbd>F</kbd> 전체화면 · <kbd>P</kbd> 인쇄
+</div>
+<div class="nav">
+  <button id="prev" aria-label="이전 슬라이드">이전</button>
+  <button id="next" aria-label="다음 슬라이드">다음</button>
+</div>
+
+<script>
+(function(){
+  var deck = document.getElementById('deck');
+  var slides = Array.prototype.slice.call(deck.querySelectorAll('.slide'));
+  var hudT = document.getElementById('hud-title');
+  var hudC = document.getElementById('hud-count');
+  var i = 0;
+
+  function show(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, k){ s.classList.toggle('is-live', k === i); });
+    var s = slides[i];
+    deck.setAttribute('data-layer', s.getAttribute('data-layer') || 'none');
+    hudT.textContent = s.getAttribute('data-title') || '';
+    hudC.textContent = (i + 1) + ' / ' + slides.length;
+    if (location.hash !== '#' + (i + 1)) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  document.getElementById('prev').addEventListener('click', function(){ show(i - 1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i + 1); });
+
+  document.addEventListener('keydown', function(e){
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    switch(e.key){
+      case 'ArrowRight': case 'PageDown': case ' ': show(i + 1); e.preventDefault(); break;
+      case 'ArrowLeft':  case 'PageUp':          show(i - 1); e.preventDefault(); break;
+      case 'Home': show(0); break;
+      case 'End':  show(slides.length - 1); break;
+      case 'f': case 'F':
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+        break;
+      case 'p': case 'P': window.print(); break;
+    }
+  });
+
+  var start = null;
+  deck.addEventListener('touchstart', function(e){ start = e.touches[0].clientX; }, {passive:true});
+  deck.addEventListener('touchend', function(e){
+    if (start === null) return;
+    var dx = e.changedTouches[0].clientX - start;
+    if (Math.abs(dx) > 50) show(dx < 0 ? i + 1 : i - 1);
+    start = null;
+  }, {passive:true});
+
+  var h = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(h) ? 0 : h - 1);
+})();
+</script>
+</body>
+</html>
