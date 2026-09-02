@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chapter 5 · 출력 인터페이스</title>
+<style>
+  /* ===================================================================
+     팔레트는 이 장에서 실측한 statusLine의 ANSI 값을 그대로 쓴다.
+     자료가 다루는 대상이 곧 자료의 외형이 되도록.
+     =================================================================== */
+  :root{
+    --bg:#0b0f0e; --panel:#111817; --panel2:#0e1413; --deep:#070a09;
+    --line:#1f2a27; --line2:#2c3a36;
+    --txt:#dde5e0; --dim:#8a978f; --faint:#5b6862;
+
+    --o:#ff8700;      /* ANSI 208 · 모델 */
+    --b:#5fafff;      /* ANSI 75  · 버전 */
+    --gray:#9aa39d;   /* ANSI 245 · 컨텍스트 */
+    --m:#d787d7;      /* ANSI 176 · 브랜치 */
+    --g:rgb(195,232,135);  /* IJ_ADDED */
+    --t:rgb(128,203,196);  /* IJ_MODIFIED */
+    --r:rgb(247,118,105);  /* IJ_DELETED */
+
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:Pretendard,"Noto Sans KR","Apple SD Gothic Neo",system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);
+    font-family:var(--sans);line-height:1.75;letter-spacing:-.012em;
+    -webkit-text-size-adjust:100%;
+    background-image:
+      linear-gradient(rgba(255,255,255,.016) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.016) 1px,transparent 1px);
+    background-size:64px 64px;
+  }
+
+  /* ---------- 상단 고정 상태 표시줄 (statusLine 오마주) ---------- */
+  .bar{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    background:rgba(7,10,9,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line2);
+    font-family:var(--mono);font-size:.76rem;
+    display:flex;align-items:center;gap:0;padding:0 14px;height:34px;
+    white-space:nowrap;overflow:hidden;
+  }
+  .bar .seg{padding:0 10px;flex:none}
+  .bar .sep{color:#3c4844}
+  .bar .grow{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
+  .bar .meter{
+    position:absolute;left:0;bottom:-1px;height:2px;width:0;
+    background:linear-gradient(90deg,var(--o),var(--m));
+  }
+  @media (max-width:760px){ .bar .hide-s{display:none} }
+
+  main{width:min(1080px,calc(100% - 40px));margin:0 auto;padding-top:34px}
+  section{padding:82px 0;border-bottom:1px solid var(--line)}
+  section:last-of-type{border-bottom:0}
+
+  /* ---------- 섹션 헤더 ---------- */
+  .sec-no{font-family:var(--mono);font-size:.74rem;letter-spacing:.16em;color:var(--faint)}
+  .kicker{font-family:var(--mono);font-size:.75rem;font-weight:700;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--o);margin:6px 0 10px}
+  .kicker.b{color:var(--b)} .kicker.m{color:var(--m)}
+  h2{margin:0 0 12px;font-size:clamp(1.6rem,4.2vw,2.25rem);letter-spacing:-.035em;line-height:1.26;font-weight:800}
+  h2::before{content:"▸ ";color:var(--o);font-family:var(--mono);font-weight:400}
+  h3{margin:40px 0 14px;font-size:clamp(1.06rem,2.5vw,1.22rem);letter-spacing:-.025em;font-weight:700;
+    padding-left:12px;border-left:2px solid var(--line2)}
+  .lead{margin:0 0 22px;color:var(--dim);max-width:76ch;font-size:1rem}
+  .lead b,.card p b,.vs-list b.inl{color:var(--txt);font-weight:700}
+
+  /* ---------- HERO ---------- */
+  .hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;padding:60px 0 78px;border-bottom:1px solid var(--line)}
+  .hero .tag{font-family:var(--mono);font-size:.78rem;letter-spacing:.14em;color:var(--faint)}
+  .hero h1{margin:14px 0 4px;font-size:clamp(2.6rem,8.5vw,5rem);line-height:1.06;letter-spacing:-.045em;font-weight:800}
+  .hero .sub{margin:0 0 34px;color:var(--dim);font-size:clamp(1rem,2.4vw,1.16rem)}
+  .hero .sub b{color:var(--o);font-weight:700}
+  .hero .sub b.alt{color:var(--m)}
+
+  .thesis{border:1px solid var(--line2);background:var(--panel);max-width:860px}
+  .thesis .th-bar{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--faint);
+    padding:8px 18px;border-bottom:1px solid var(--line);background:var(--panel2);
+    display:flex;align-items:center;gap:8px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .thesis .th-body{padding:22px 24px 24px}
+  .thesis p.big{margin:0 0 14px;font-size:clamp(1.08rem,2.8vw,1.42rem);font-weight:800;line-height:1.5;letter-spacing:-.028em}
+  .thesis p.small{margin:0;color:var(--dim);font-size:.94rem}
+
+  .metarow{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-family:var(--mono);font-size:.76rem;padding:5px 11px;border:1px solid var(--line2);
+    color:var(--dim);background:var(--panel2)}
+  .chip.on{color:var(--o);border-color:rgba(255,135,0,.4)}
+
+  /* ---------- 판넬 / 카드 ---------- */
+  .grid{display:grid;gap:1px;background:var(--line)}
+  .grid.gap{gap:14px;background:transparent}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .card{background:var(--panel);padding:22px 22px 20px;border:1px solid transparent}
+  .grid.gap .card{border-color:var(--line2)}
+  .card h4{margin:0 0 8px;font-size:1rem;letter-spacing:-.02em;font-weight:700}
+  .card p{margin:0;color:var(--dim);font-size:.92rem}
+  .card .num{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--o);display:block;margin-bottom:8px}
+  .card.top-o{border-top:2px solid var(--o)}
+  .card.top-b{border-top:2px solid var(--b)}
+  .card.top-m{border-top:2px solid var(--m)}
+
+  code,kbd{font-family:var(--mono);font-size:.85em;background:rgba(255,255,255,.055);
+    padding:.1em .4em;border-radius:3px;color:#e8f0ea}
+  pre{margin:0;background:var(--deep);color:#dfe8e1;border:1px solid var(--line2);
+    padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:.83rem;line-height:1.7}
+  pre .c{color:var(--faint)}
+  pre .k{color:var(--o)}
+  pre .s{color:var(--g)}
+  pre .p{color:var(--m)}
+
+  /* ---------- 표 ---------- */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line2);background:var(--panel);margin-top:10px}
+  table{border-collapse:collapse;width:100%;min-width:580px;font-size:.91rem}
+  th,td{padding:12px 15px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{background:var(--panel2);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;
+    color:var(--faint);text-transform:uppercase;font-weight:700;white-space:nowrap;
+    border-bottom:1px solid var(--line2)}
+  td{color:var(--dim)}
+  td b,td strong{color:var(--txt)}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr.hl td{background:rgba(95,175,255,.06)}
+  tbody tr.hl td:first-child{box-shadow:inset 2px 0 0 var(--b)}
+
+  /* ---------- 좌우 2열 대비: tmux 패널 스타일 ---------- */
+  .versus{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+  .pane{border:1px solid var(--line2);background:var(--panel);display:flex;flex-direction:column}
+  .pane-bar{font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;padding:9px 14px;
+    border-bottom:1px solid var(--line);background:var(--panel2);display:flex;align-items:center;gap:9px}
+  .pane-a .pane-bar{color:var(--b)} .pane-a{box-shadow:inset 0 2px 0 var(--b)}
+  .pane-b .pane-bar{color:var(--m)} .pane-b{box-shadow:inset 0 2px 0 var(--m)}
+  .pane-body{padding:18px 20px 20px;flex:1}
+  .pane h4{margin:0 0 2px;font-size:1.12rem;letter-spacing:-.028em;font-weight:800}
+  .pane .who{font-size:.84rem;color:var(--faint);margin-bottom:12px}
+  .vs-list{list-style:none;margin:0;padding:0}
+  .vs-list li{padding:11px 0;border-top:1px solid var(--line);font-size:.92rem;color:var(--dim)}
+  .vs-list li:first-child{border-top:0;padding-top:2px}
+  .vs-list b{display:block;font-family:var(--mono);font-size:.7rem;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--faint);font-weight:700;margin-bottom:3px}
+  .verdict{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .vd{padding:14px 17px;font-size:.9rem;font-weight:700;border:1px solid var(--line2)}
+  .vd-a{background:rgba(95,175,255,.08);color:#bcd9f7;border-color:rgba(95,175,255,.3)}
+  .vd-b{background:rgba(215,135,215,.08);color:#eccdec;border-color:rgba(215,135,215,.3)}
+
+  /* ---------- 콜아웃 ---------- */
+  .box{border:1px solid var(--line2);background:var(--panel);margin-top:16px}
+  .box .b-bar{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;
+    padding:8px 16px;border-bottom:1px solid var(--line);background:var(--panel2);font-weight:700}
+  .box .b-body{padding:16px 18px}
+  .box .b-body>*:first-child{margin-top:0}
+  .box .b-body>*:last-child{margin-bottom:0}
+  .box p{margin:0 0 9px;font-size:.93rem;color:var(--dim)}
+  .box p b{color:var(--txt)}
+  .box ul{margin:0;padding-left:1.1em}
+  .box li{font-size:.92rem;margin:6px 0;color:var(--dim)}
+  .box li b{color:var(--txt)}
+  .bx-m{border-left:2px solid var(--b)} .bx-m .b-bar{color:var(--b)} .bx-m li::marker{color:var(--b)}
+  .bx-w{border-left:2px solid var(--o)} .bx-w .b-bar{color:var(--o)}
+  .bx-g{border-left:2px solid var(--g)} .bx-g .b-bar{color:var(--g)}
+
+  /* ---------- 터미널 시뮬 ---------- */
+  .term{background:var(--deep);border:1px solid var(--line2)}
+  .term-bar{font-family:var(--mono);font-size:.72rem;color:var(--faint);padding:8px 14px;
+    border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px}
+  .term-body{padding:16px 18px;overflow-x:auto}
+  .tline{font-family:var(--mono);font-size:.87rem;white-space:nowrap;line-height:2.15}
+  .tsep{color:#3c4844;padding:0 .5em}
+  .c-model{color:var(--o)}.c-ver{color:var(--b)}.c-ctx{color:var(--gray)}.c-branch{color:var(--m)}
+  .c-add{color:var(--g)}.c-mod{color:var(--t)}.c-del{color:var(--r)}
+  .term-cap{font-size:.82rem;color:var(--faint);padding:0 18px 14px;font-family:var(--mono)}
+
+  .sw{display:inline-block;width:.8em;height:.8em;vertical-align:-.06em;margin-right:.4em;
+    border:1px solid rgba(255,255,255,.18)}
+
+  /* ---------- 단계 흐름 ---------- */
+  .flow{display:grid;gap:1px;background:var(--line);border:1px solid var(--line2);margin-top:10px}
+  .fstep{display:flex;gap:15px;align-items:flex-start;padding:14px 18px;background:var(--panel);font-size:.92rem;color:var(--dim)}
+  .fstep .n{font-family:var(--mono);font-weight:700;color:var(--b);flex:none;width:1.8em}
+  .fstep b{color:var(--txt)}
+
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .pill{font-family:var(--mono);font-size:.79rem;padding:6px 12px;border:1px solid var(--line2);
+    color:var(--dim);background:var(--panel2)}
+  .pill.yes{color:var(--g);border-color:rgba(195,232,135,.32)}
+  .pill.no{color:var(--r);border-color:rgba(247,118,105,.32)}
+
+  /* ---------- 정리 ---------- */
+  .closing{display:grid;gap:1px;background:var(--line);border:1px solid var(--line2)}
+  .close-item{display:flex;gap:18px;align-items:flex-start;padding:20px 22px;background:var(--panel)}
+  .close-item .n{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--o);flex:none;width:2em;padding-top:2px}
+  .close-item h4{margin:0 0 5px;font-size:1.03rem;letter-spacing:-.022em;font-weight:700}
+  .close-item p{margin:0;color:var(--dim);font-size:.93rem}
+  .close-item p b{color:var(--txt)}
+
+  footer{padding:46px 0 76px;color:var(--faint);font-size:.82rem;font-family:var(--mono);line-height:1.9}
+
+  @media (max-width:880px){
+    .g2,.g3,.g4,.versus,.verdict{grid-template-columns:1fr}
+    section{padding:60px 0}
+    .hero{min-height:auto;padding:48px 0 60px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 고정 상태 표시줄 ===== -->
+<div class="bar" id="bar">
+  <span class="seg c-model">🤖 ch5</span><span class="sep">|</span>
+  <span class="seg c-ver hide-s">🏷️ v2.1.258</span><span class="sep hide-s">|</span>
+  <span class="seg c-ctx" id="pct">📊 0%</span><span class="sep">|</span>
+  <span class="grow" id="cur">▸ 출력 인터페이스</span>
+  <span class="sep hide-s">|</span><span class="seg c-branch hide-s">🌿 feat/jyshin-chap05</span>
+  <div class="meter" id="meter"></div>
+</div>
+
+<main>
+
+<!-- ===== HERO ===== -->
+<section class="hero" data-t="출력 인터페이스">
+  <div class="tag">CHAPTER 05 &nbsp;·&nbsp; 재윤</div>
+  <h1>출력 인터페이스</h1>
+  <p class="sub">에이전트가 <b>나에게 말하는 방식</b>과 내가 <b class="alt">에이전트를 읽는 방식</b></p>
+
+  <div class="thesis">
+    <div class="th-bar">
+      <span class="dot" style="background:var(--r)"></span>
+      <span class="dot" style="background:var(--o)"></span>
+      <span class="dot" style="background:var(--g)"></span>
+      <span style="margin-left:6px">이 장의 한 문장</span>
+    </div>
+    <div class="th-body">
+      <p class="big">에이전트에는 출력 표면이 둘 있다. <span style="color:var(--b)">무엇을 말하는가</span>(출력 스타일)와 <span style="color:var(--m)">지금 어떤 상태인가</span>(상태 표시줄). 5장은 그 둘을 모두 설정 파일로 사용자가 소유한다는 이야기다.</p>
+      <p class="small">3장 스킬이 <b style="color:var(--txt)">지식</b>의 비용을, 4장 서브에이전트가 <b style="color:var(--txt)">작업</b>의 비용을 다뤘다면, 5장은 그 결과가 <b style="color:var(--txt)">사람에게 도달하는 마지막 구간</b>이다. 두 절이 한 장에 묶인 이유가 여기 있다 — 둘 다 "출력"이고, 둘 다 설정 파일에 소유권이 있다. 방향만 반대다.</p>
+    </div>
+  </div>
+
+  <div class="metarow">
+    <span class="chip">실측 2026-09-02</span>
+    <span class="chip">claude 2.1.258</span>
+    <span class="chip on">출력 스타일 5분 · 상태 표시줄 5분</span>
+  </div>
+</section>
+
+<!-- ===== 두 출력 표면 ===== -->
+<section data-t="같은 출력, 반대 방향">
+  <div class="sec-no">05.1</div>
+  <p class="kicker b">구조</p>
+  <h2>같은 "출력", 반대 방향</h2>
+  <p class="lead">이 장을 두 덩어리로 나누는 선은 <b>정보가 흐르는 방향</b>이다. 하나는 에이전트에서 나에게로, 하나는 에이전트의 내부 상태에서 내 눈으로.</p>
+
+  <div class="versus">
+    <div class="pane pane-a">
+      <div class="pane-bar">💬 &nbsp;에이전트 → 나</div>
+      <div class="pane-body">
+        <h4>출력 스타일</h4>
+        <div class="who">무엇을 말하는가</div>
+        <ul class="vs-list">
+          <li><b>바꾸는 것</b>시스템 프롬프트를 <b class="inl">대체</b>한다. 형식이 아니라 응답의 근본 성격</li>
+          <li><b>사는 곳</b><code>~/.claude/output-styles/</code> · <code>.claude/output-styles/</code></li>
+          <li><b>켜는 법</b>settings.json의 <code>"outputStyle"</code></li>
+          <li><b>모양</b>YAML 프론트매터 + 마크다운 본문</li>
+          <li><b>내 시스템</b><span style="color:var(--r)">0개. 디렉터리조차 없다</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane pane-b">
+      <div class="pane-bar">📊 &nbsp;에이전트 상태 → 내 눈</div>
+      <div class="pane-body">
+        <h4>상태 표시줄</h4>
+        <div class="who">지금 어떤 상태인가</div>
+        <ul class="vs-list">
+          <li><b>바꾸는 것</b>응답이 아니라 <b class="inl">화면 한 줄</b>. 모델·버전·컨텍스트·git</li>
+          <li><b>사는 곳</b>settings.json의 <code>statusLine</code> (또는 스크립트 파일)</li>
+          <li><b>켜는 법</b><code>/statusline</code> 으로 자연어 생성</li>
+          <li><b>모양</b>stdin JSON을 받아 문자열을 뱉는 <b class="inl">명령</b></li>
+          <li><b>내 시스템</b><span style="color:var(--g)">실사용 중. 이 장 유일한 실물</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="vd vd-a">개념은 크고 실물은 없다 — <b>왜 안 썼는지</b>가 오늘의 논점</div>
+    <div class="vd vd-b">개념은 작고 실물이 있다 — <b>열어보니 알게 된 것</b>이 오늘의 논점</div>
+  </div>
+</section>
+
+<!-- ===== PART 1: 출력 스타일 ===== -->
+<section data-t="출력 스타일 — 시스템 프롬프트를 바꾼다">
+  <div class="sec-no">05.2</div>
+  <p class="kicker">PART 1 · 출력 스타일</p>
+  <h2>형식이 아니라 시스템 프롬프트를 바꾼다</h2>
+  <p class="lead"><b>출력 스타일</b>은 클로드 코드가 응답을 생성할 때 따르는 가이드라인의 집합이다. 핵심은 이것이 <b>시스템 프롬프트를 직접 수정</b>한다는 점 — 말투를 바꾸는 옵션이 아니라 응답의 근본적인 특성을 바꾸는 스위치다.</p>
+
+  <div class="box bx-w">
+    <div class="b-bar">⚠ 가장 조심할 문장</div>
+    <div class="b-body">
+      <p>default가 아닌 custom을 선택하면 <b>"소프트웨어 엔지니어링 관련 지침이 제거된다"</b>. 코딩 지침을 남기려면 프론트매터에 <code>keep-coding-instructions: true</code>.</p>
+      <p style="color:var(--faint);font-size:.89rem;margin-bottom:0">단, 이 "제거"가 <b style="color:var(--dim)">내장 4종에도</b> 걸리는지 <b style="color:var(--dim)">직접 만든 스타일에만</b>인지는 원문만으로 갈리지 않는다. 바이너리에서 필드 존재까지는 확인했지만 적용 범위는 못 찾았다 — <b style="color:var(--o)">미확정으로 남긴다.</b></p>
+    </div>
+  </div>
+
+  <h3>내장 5종</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>스타일</th><th>하는 일</th><th>실측 — v2.1.258 바이너리</th></tr></thead>
+      <tbody>
+        <tr><td><b>Default</b></td><td>코딩 작업을 효율적으로, 간결한 답변</td><td>이름 확인 · <span style="color:var(--faint)">설명 문자열 미확인</span></td></tr>
+        <tr><td><b>Proactive</b></td><td>즉시 실행, 중단 최소화, 계획보다 행동</td><td>이름 확인 · <span style="color:var(--faint)">설명 문자열 미확인</span></td></tr>
+        <tr class="hl"><td><b>Concise</b></td><td>서두·부연 없이 결과부터</td><td><code>Claude responds tersely, leading with results and skipping preamble and narration</code></td></tr>
+        <tr class="hl"><td><b>Explanatory</b></td><td>구현 선택 이유와 코드베이스 패턴 설명</td><td><code>Claude explains its implementation choices and codebase patterns</code></td></tr>
+        <tr class="hl"><td><b>Learning</b></td><td>멈추고 실습용 코드를 써보라고 요청</td><td><code>Claude pauses and asks you to write small pieces of code for hands-on practice</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box bx-m">
+    <div class="b-bar">◆ 내 시스템에서 확인한 것</div>
+    <div class="b-body">
+      <ul>
+        <li>5개 이름 <b>모두 바이너리에 존재</b>. 설명 문장 3개는 영문 원본이 교재 한국어 설명과 일치했다.</li>
+        <li>교재는 <code>/config</code> 경유를 안내하지만 <b><code>/output-styles</code> 슬래시 명령 문자열도 존재</b>한다 (복수형). 실행 검증은 안 함.</li>
+        <li><b>교재에 없는 축 — 플러그인도 출력 스타일을 배포할 수 있다.</b> 플러그인 매니페스트 키 목록에 <code>agents</code>·<code>skills</code>·<code>themes</code>와 나란히 <code>outputStyles</code>가 있다. 4장에서 본 "플러그인이 서브에이전트를 배포한다"와 같은 구조.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 대체 vs 추가 ===== -->
+<section data-t="대체냐, 추가냐">
+  <div class="sec-no">05.3</div>
+  <p class="kicker b">PART 1 · 경계</p>
+  <h2>대체냐, 추가냐</h2>
+  <p class="lead">원문이 던지는 가장 실용적인 구분. 둘 다 "응답 방식"을 바꾸지만, 시스템 프롬프트에 대해 하는 일이 정반대다.</p>
+
+  <div class="versus">
+    <div class="pane pane-a">
+      <div class="pane-bar">♻ &nbsp;REPLACE</div>
+      <div class="pane-body">
+        <h4>Output Style</h4>
+        <div class="who">시스템 프롬프트를 <b style="color:var(--b)">완전 대체</b></div>
+        <ul class="vs-list">
+          <li><b>효과</b>기본 지침을 <b class="inl">걷어낸다</b>. 코딩 지침도 함께 날아갈 수 있다</li>
+          <li><b>위험</b><span style="color:var(--r)">높다</span> — 범위가 넓고, 무엇이 사라졌는지 눈에 안 보인다</li>
+          <li><b>적합</b>"기본값을 쓰지 않겠다"가 목적일 때</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane pane-b">
+      <div class="pane-bar">＋ &nbsp;APPEND</div>
+      <div class="pane-body">
+        <h4>CLAUDE.md</h4>
+        <div class="who">시스템 프롬프트에 <b style="color:var(--m)">추가</b></div>
+        <ul class="vs-list">
+          <li><b>효과</b>기본 지침 위에 <b class="inl">규칙을 얹는다</b></li>
+          <li><b>위험</b><span style="color:var(--g)">낮다</span> — 빼는 게 아니라 더하는 것</li>
+          <li><b>적합</b>"기본값에 우리 규칙을 더하겠다"가 목적일 때</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="box bx-w">
+    <div class="b-bar">⚠ 그래서 이번 장에서 커스텀 스타일을 만들지 않았다</div>
+    <div class="b-body">
+      <p><b style="color:var(--o)">1 · 목적이 이미 겹친다.</b> 교재 예시 <code>korean-architecture-focused</code>가 하려는 일(한국어 응답·문서화 규칙)을 이 레포에서는 <code>CLAUDE.md</code>가 이미 하고 있다. 두 축을 겹쳐 쓰면 어느 쪽이 이겼는지 알 수 없다.</p>
+      <p><b style="color:var(--o)">2 · 프로젝트 수준은 혼자 만들 파일이 아니다.</b> <code>.claude/output-styles/</code>에 파일을 두는 건 <b>팀 전체의 시스템 프롬프트를 대체</b>하는 변경이다. 이 레포의 <code>CLAUDE.md</code>는 "공통 스킬은 모임 논의로 선정된 것만 승격한다"고 못박고 있고, 출력 스타일은 스킬보다 영향 범위가 크다. <b>모임 안건이지 개인 커밋이 아니다.</b></p>
+      <p style="margin-bottom:0"><b style="color:var(--o)">3 · 도입한다면.</b> 개인 실험은 <code>~/.claude/output-styles/</code>. 팀에 넣는다면 <code>CLAUDE.md</code>가 못 하는 일 — 즉 <b>"추가"가 아니라 "대체"가 필요할 때</b>여야 한다. 발표 리허설처럼 코딩 지침 자체를 걷어내고 싶은 경우라면, 오히려 <code>keep-coding-instructions</code>를 <b>켜지 않는</b> 게 목적에 맞는다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 5자 비교 ===== -->
+<section data-t="스킬까지 놓으면 경계가 선명해진다">
+  <div class="sec-no">05.4</div>
+  <p class="kicker">PART 1 · 확장 <span style="color:var(--faint)">(원문에 없음 — 3·4장 연결용)</span></p>
+  <h2>스킬까지 놓으면 경계가 선명해진다</h2>
+  <p class="lead">원문은 "응답 방식(Output Style·CLAUDE.md)"과 "작업 실행(서브에이전트·슬래시 명령어)"을 2×2로 나열한다. 3·4장을 지나왔으니 스킬을 넣어 다섯 개를 한 표에 올려본다.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>기능</th><th>바꾸는 것</th><th>컨텍스트</th><th>언제 들어오나</th></tr></thead>
+      <tbody>
+        <tr><td><b>Output Style</b></td><td>시스템 프롬프트를 <b>대체</b></td><td>메인</td><td>세션 시작부터 계속</td></tr>
+        <tr><td><b>CLAUDE.md</b></td><td>시스템 프롬프트에 <b>추가</b></td><td>메인</td><td>세션 시작부터 계속</td></tr>
+        <tr><td><b>스킬</b></td><td><b>지식</b>을 주입</td><td>메인 (컨텍스트에 로드)</td><td>필요할 때 · 점진적 공개</td></tr>
+        <tr class="hl"><td><b>서브에이전트</b></td><td><b>작업</b>을 위임</td><td><b style="color:var(--b)">격리</b> — 결과만 회수</td><td>호출할 때</td></tr>
+        <tr><td><b>슬래시 명령어</b></td><td>저장된 <b>프롬프트</b>를 실행</td><td>메인</td><td>사용자가 칠 때</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid gap g2" style="margin-top:16px">
+    <div class="card top-b"><h4>위 둘은 배경, 아래 셋은 호출</h4><p>Output Style·CLAUDE.md는 <b>항상 켜져 있는 배경</b>이다. 스킬·서브에이전트·슬래시 명령어는 <b>불러야 오는 것</b>이다.</p></div>
+    <div class="card top-m"><h4>격리는 서브에이전트뿐</h4><p>다섯 중 컨텍스트가 갈라지는 건 하나뿐이다. 4장의 핵심이 이 표에서 <b>유일한 예외</b>로 드러난다.</p></div>
+  </div>
+</section>
+
+<!-- ===== 팀 표준 + 환각 방지 ===== -->
+<section data-t="팀 표준과 환각 방지">
+  <div class="sec-no">05.5</div>
+  <p class="kicker">PART 1 · 팀에서</p>
+  <h2>팀 표준과 환각 방지</h2>
+
+  <div class="grid g3">
+    <div class="card"><span class="num">01</span><h4>컨벤션 반영</h4><p>코드 주석의 언어, 변수 명명 규칙 설명 방식, 아키텍처 결정 문서화 수준을 스타일에 명시.</p></div>
+    <div class="card"><span class="num">02</span><h4>상세 수준 정의</h4><p>간결한 응답이냐 상세한 설명이냐를 팀 차원에서 정한다.</p></div>
+    <div class="card"><span class="num">03</span><h4>보안 지침 포함</h4><p>스타일 안에 보안 관련 지침을 넣는다.</p></div>
+  </div>
+
+  <h3>환각 방지 지침 — 시스템 수준에서 걸 수 있다</h3>
+  <div class="pills">
+    <span class="pill">1 · URL 및 출처 검증</span>
+    <span class="pill">2 · 불확실성 표현 허용</span>
+    <span class="pill">3 · 도구 결과 기반 응답 강제</span>
+    <span class="pill">4 · 팀 환경의 환각 방지 표준</span>
+  </div>
+
+  <div class="box bx-w">
+    <div class="b-bar">⚠ 여기는 채우지 않았다</div>
+    <div class="b-body"><p style="margin-bottom:0">원문 노트에 <b>네 항목의 제목만</b> 있고 내용이 없다. <b style="color:var(--o)">없는 내용을 채우면 그 자체가 환각</b>이라서 제목만 그대로 뒀다.</p></div>
+  </div>
+
+  <div class="box bx-m">
+    <div class="b-bar">◆ 대신 실측 — 같은 지침이 스킬 안에 있었다</div>
+    <div class="b-body">
+      <ul>
+        <li>지금 이 발표 자료를 만드는 <code>.claude/skills/pre-chapter-prep/SKILL.md</code>의 규칙:<br>
+          <span style="color:var(--faint)">·</span> <i>"적용예시는 파일을 읽고 확인된 것만. 기억으로 쓰지 마라."</i> → <b>3번 · 도구 결과 기반 응답 강제</b><br>
+          <span style="color:var(--faint)">·</span> <i>"원문에 없는 사실 지어내기 금지. 빈틈은 (확인 필요)."</i> → <b>2번 · 불확실성 표현 허용</b></li>
+        <li><b>여기서 얻은 관찰</b> — 같은 지침을 <b>스킬</b>에 넣으면 그 작업을 할 때만 걸리고, <b>출력 스타일</b>에 넣으면 모든 응답에 걸린다. 4항목 중 <b>4번만 출력 스타일이 어울리고</b>, 1~3번은 스킬로도 충분하다.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PART 2 ===== -->
+<section data-t="상태 표시줄 — 유일하게 실물이 있는 기능">
+  <div class="sec-no">05.6</div>
+  <p class="kicker m">PART 2 · 상태 표시줄</p>
+  <h2>이 장에서 유일하게 실물이 있는 기능</h2>
+  <p class="lead"><code>/statusline</code>에 자연어로 원하는 걸 적으면 명령이 만들어진다. 내가 예전에 넣은 프롬프트의 <b>결과물이 지금도 <code>~/.claude/settings.json</code>에 살아 있다.</b> 이번 정리를 하면서 처음 열어봤다.</p>
+
+<pre><span class="p">/statusline</span> 모델 정보 | 버전 정보 | 비용 정보 (현재 사용한 컨택스트 / 총 컨택스트) | 깃 상태 | 현재 위치한 브랜치
+
+그리고 좌측에는 간단한 이모지나 아이콘 표시되도록. 색깔은 니가 생각했을 때 적절한 형태로
+
+깃 상태 표시 시, <span class="k">~는 Mod ?는 New + - 는 기호 그대로</span>
+
+색상은 인텔리제이 IDE 기준 Dracula 테마 색상으로</pre>
+
+  <h3>그 결과 — 실제로 화면에 뜨는 줄</h3>
+  <div class="term">
+    <div class="term-bar">
+      <span class="dot" style="background:var(--r)"></span>
+      <span class="dot" style="background:var(--o)"></span>
+      <span class="dot" style="background:var(--g)"></span>
+      <span style="margin-left:6px">~/.claude/settings.json → statusLine</span>
+    </div>
+    <div class="term-body">
+      <div class="tline"><span class="c-model">🤖 Opus 5 (1M context)</span><span class="tsep">|</span><span class="c-ver">🏷️ v2.1.258</span><span class="tsep">|</span><span class="c-ctx">📊 41.2k/1M</span><span class="tsep">|</span><span class="c-add">✅ clean</span><span class="tsep">|</span><span class="c-branch">🌿 feat/jyshin-chap05</span></div>
+      <div class="tline"><span class="c-model">🤖 Opus 5 (1M context)</span><span class="tsep">|</span><span class="c-ver">🏷️ v2.1.258</span><span class="tsep">|</span><span class="c-ctx">📊 41.2k/1M</span><span class="tsep">|</span>⚠️ <span class="c-mod">Mod 3</span> <span class="c-del">New 1</span> <span class="c-add">+42</span> <span class="c-del">-7</span><span class="tsep">|</span><span class="c-branch">🌿 feat/jyshin-chap05</span></div>
+    </div>
+    <div class="term-cap">위: 깨끗할 때 / 아래: 변경이 있을 때 &nbsp;—&nbsp; 색은 settings.json의 실제 ANSI 값. 이 페이지 전체 팔레트도 같은 값이다.</div>
+  </div>
+
+  <h3>해부 ① 저장 형태 — 스크립트 파일이 아니다</h3>
+<pre>{ <span class="s">"statusLine"</span>: { <span class="s">"type"</span>: <span class="s">"command"</span>, <span class="s">"command"</span>: <span class="c">"&lt;bash 원라이너 전체&gt;"</span> } }</pre>
+  <p class="lead" style="margin-top:14px">교재는 "Bash·Python·Node.js 스크립트로도 작성 가능"이라고 안내한다. 그런데 내 것은 <b>그 선택지를 쓰지 않고</b> settings.json에 통째로 박아 넣은 형태다. <code>~/.claude/</code>에 <code>.sh</code> 파일은 하나도 없다.</p>
+
+  <h3>해부 ② 입력은 stdin JSON</h3>
+  <p class="lead"><code>input=$(cat)</code>으로 받아 <code>jq</code>로 뽑는 필드가 정확히 5개다.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>jq 경로</th><th>쓰임</th></tr></thead>
+      <tbody>
+        <tr><td><code>.model.display_name</code></td><td>모델 이름</td></tr>
+        <tr><td><code>.version</code></td><td>클로드 코드 버전</td></tr>
+        <tr><td><code>.context_window.total_input_tokens</code></td><td>사용한 컨텍스트</td></tr>
+        <tr><td><code>.context_window.context_window_size</code></td><td>총 컨텍스트</td></tr>
+        <tr><td><code>.workspace.current_dir</code></td><td>git 조회 기준 디렉터리</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>해부 ③ 헬퍼 함수가 진짜로 있었다</h3>
+  <div class="box bx-g">
+    <div class="b-bar">✓ 원문 마지막 줄의 실물</div>
+    <div class="b-body">
+      <ul>
+        <li>원문: <i>"너무 복잡해지면 헬퍼 함수 정의하여 코드 정리하자."</i></li>
+        <li>실물: <code>fmt_tokens()</code> — awk로 1,000 이상은 <code>k</code>, 1,000,000 이상은 <code>M</code>으로 축약. 정수면 <code>1M</code>, 아니면 <code>1.2M</code>.</li>
+        <li>즉 <b>노트에 적어둔 조언이 내 설정 안에 이미 구현되어 있었다.</b></li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>해부 ④ git 처리와 색상</h3>
+  <div class="flow">
+    <div class="fstep"><div class="n">01</div><div><code>git --no-optional-locks</code> — 인덱스 락을 피한다. 상태 표시줄은 <b>매 턴 돌기 때문에</b> 락 충돌을 막아야 한다.</div></div>
+    <div class="fstep"><div class="n">02</div><div><code>status --porcelain</code> — tracked / untracked 개수를 센다.</div></div>
+    <div class="fstep"><div class="n">03</div><div><code>diff --shortstat HEAD</code> — insertion / deletion 수를 뽑는다.</div></div>
+    <div class="fstep"><div class="n">04</div><div>깨끗하면 <span class="c-add">✅ clean</span>, 아니면 ⚠️ + 변경 요약.</div></div>
+  </div>
+
+  <div class="tbl-wrap" style="margin-top:18px">
+    <table>
+      <thead><tr><th>구분</th><th>방식</th><th>값</th></tr></thead>
+      <tbody>
+        <tr><td>모델 / 버전 / 컨텍스트 / 브랜치</td><td>ANSI 256색</td><td>
+          <span class="sw" style="background:#ff8700"></span><code>208</code>
+          <span class="sw" style="background:#5fafff;margin-left:.7em"></span><code>75</code>
+          <span class="sw" style="background:#9aa39d;margin-left:.7em"></span><code>245</code>
+          <span class="sw" style="background:#d787d7;margin-left:.7em"></span><code>176</code></td></tr>
+        <tr><td>추가 / 수정 / 삭제·미추적</td><td>24비트 트루컬러</td><td>
+          <span class="sw" style="background:rgb(195,232,135)"></span><code>195,232,135</code>
+          <span class="sw" style="background:rgb(128,203,196);margin-left:.7em"></span><code>128,203,196</code>
+          <span class="sw" style="background:rgb(247,118,105);margin-left:.7em"></span><code>247,118,105</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="lead" style="margin-top:14px">변수명이 <code>IJ_ADDED</code> · <code>IJ_MODIFIED</code> · <code>IJ_DELETED</code> · <code>IJ_UNKNOWN</code>이다. <b>IJ = IntelliJ</b> — 프롬프트의 "인텔리제이 IDE 기준"이 <b>변수명에까지</b> 남았다.</p>
+</section>
+
+<!-- ===== 어긋난 지점 ===== -->
+<section data-t="프롬프트와 결과가 어긋난 한 곳">
+  <div class="sec-no">05.7</div>
+  <p class="kicker">PART 2 · 오늘의 발견</p>
+  <h2>프롬프트와 결과가 어긋난 한 곳</h2>
+
+  <div class="versus">
+    <div class="pane pane-a">
+      <div class="pane-bar">📝 &nbsp;PROMPT</div>
+      <div class="pane-body">
+        <h4>내가 요청한 것</h4>
+        <div class="who">프롬프트 원문</div>
+        <ul class="vs-list">
+          <li><b>요청</b>"<code>~</code>는 Mod, <code>?</code>는 New, <code>+ -</code>는 기호 그대로"</li>
+          <li><b>의도</b><code>git status</code>의 <b class="inl">기호를 라벨로 치환</b>해달라</li>
+          <li><b>기대 출력</b><code>Mod Mod New + -</code> 형태</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pane pane-b">
+      <div class="pane-bar">⚙ &nbsp;RESULT</div>
+      <div class="pane-body">
+        <h4>실제로 생성된 것</h4>
+        <div class="who">settings.json 실측</div>
+        <ul class="vs-list">
+          <li><b>구현</b>라벨 + <b class="inl">개수</b>로 집계</li>
+          <li><b>결과</b><span class="c-mod" style="font-family:var(--mono)">Mod 3</span> <span class="c-del" style="font-family:var(--mono)">New 1</span> — 기호는 <code>+ -</code>만 유지</li>
+          <li><b>평가</b>요청과 다르다. 다만 <b class="inl">한 줄짜리 자리엔 요약이 낫다</b></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="box bx-w">
+    <div class="b-bar">⚠ 여기서 가져갈 것</div>
+    <div class="b-body"><p style="margin-bottom:0">상태 표시줄처럼 <b>한 번 만들고 계속 쓰는</b> 산출물은, 프롬프트대로 나왔는지 <b style="color:var(--o)">다시 열어보기 전까지 모른다.</b> 나는 이 정리본을 쓰면서 <code>settings.json</code>을 실제로 읽고서야 알았다. 매일 보던 줄인데도.</p></div>
+  </div>
+</section>
+
+<!-- ===== 실측 종합 ===== -->
+<section data-t="내 시스템에 있는 것 / 없는 것">
+  <div class="sec-no">05.8</div>
+  <p class="kicker b">실측 종합</p>
+  <h2>내 시스템에 있는 것 / 없는 것</h2>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>항목</th><th>상태 · 2026-09-02</th></tr></thead>
+      <tbody>
+        <tr><td><code>outputStyle</code> 설정</td><td><b style="color:var(--r)">없음</b> — 사용자·프로젝트 모두 → Default로 동작</td></tr>
+        <tr><td><code>~/.claude/output-styles/</code></td><td><b style="color:var(--r)">디렉터리 없음</b></td></tr>
+        <tr><td><code>.claude/output-styles/</code></td><td><b style="color:var(--r)">디렉터리 없음</b></td></tr>
+        <tr><td><code>~/.claude/CLAUDE.md</code></td><td><b style="color:var(--r)">없음</b></td></tr>
+        <tr><td>프로젝트 <code>CLAUDE.md</code></td><td><b style="color:var(--g)">있음</b> — 한국어 규칙 · 폴더 규칙</td></tr>
+        <tr><td>프로젝트 <code>.claude/settings.json</code></td><td><b style="color:var(--r)">없음</b> → 팀 표준을 배포할 통로 자체가 없다</td></tr>
+        <tr class="hl"><td><code>statusLine</code></td><td><b style="color:var(--g)">있음</b> — 인라인 bash 원라이너, <code>fmt_tokens</code> 헬퍼 포함</td></tr>
+        <tr><td>상태 표시줄 스크립트 파일</td><td><b style="color:var(--r)">없음</b> — settings.json 인라인</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pills">
+    <span class="pill no">출력 스타일 — 전혀 손대지 않음</span>
+    <span class="pill yes">상태 표시줄 — 실사용 중</span>
+  </div>
+  <p class="lead" style="margin-top:16px">그런데 출력 스타일이 하려는 일(한국어·문서 규칙)은 <b><code>CLAUDE.md</code>가 이미 하고 있다.</b> "대체"가 필요 없어서 안 쓴 것이지, 몰라서 안 쓴 게 아니라는 게 이번 정리로 확인됐다.</p>
+</section>
+
+<!-- ===== 정리 ===== -->
+<section data-t="정리 — 가져갈 것 넷, 모르는 것 넷">
+  <div class="sec-no">05.9</div>
+  <p class="kicker">정리</p>
+  <h2>가져갈 것 넷, 모르는 것 넷</h2>
+  <div class="closing">
+    <div class="close-item"><div class="n">01</div><div><h4>출력 표면이 둘이다</h4><p>무엇을 말하는가(출력 스타일)와 지금 어떤 상태인가(상태 표시줄). 둘 다 <b>설정 파일에 소유권</b>이 있고, 방향만 반대다.</p></div></div>
+    <div class="close-item"><div class="n">02</div><div><h4>대체와 추가를 구분하라</h4><p>Output Style은 <b>대체</b>, CLAUDE.md는 <b>추가</b>. 같은 목적이면 위험이 낮은 쪽을 쓴다. 그래서 이번엔 커스텀 스타일을 만들지 않았다.</p></div></div>
+    <div class="close-item"><div class="n">03</div><div><h4>같은 지침도 어디 넣느냐가 다르다</h4><p>환각 방지 지침을 <b>스킬</b>에 넣으면 그 작업에만, <b>출력 스타일</b>에 넣으면 모든 응답에 걸린다. 4항목 중 팀 표준(4번)만 스타일이 어울린다.</p></div></div>
+    <div class="close-item"><div class="n">04</div><div><h4>내 설정은 다시 열어봐야 안다</h4><p><code>fmt_tokens</code> 헬퍼가 이미 있었고, 기호 매핑 요청은 카운트로 바뀌어 있었다. <b>매일 보던 한 줄인데도 열어보고서야 알았다.</b></p></div></div>
+  </div>
+
+  <h3 style="border-left-color:var(--o);color:var(--o)">발표에서 "모른다"고 말할 것</h3>
+  <div class="grid g4">
+    <div class="card top-o"><h4>SWE 지침 제거 범위</h4><p>내장 4종에도 걸리는지, 직접 만든 스타일에만인지. <b>원문·실측 모두로 판정 불가.</b></p></div>
+    <div class="card top-o"><h4>Default·Proactive 설명</h4><p>바이너리에서 문자열을 못 찾았다. <b>없다는 근거는 아니다.</b></p></div>
+    <div class="card top-o"><h4><code>/output-styles</code> 동작</h4><p>문자열은 있으나 <b>실행해보지 않았다.</b></p></div>
+    <div class="card top-o"><h4><code>statusLineHealthLatches</code></h4><p>실패·지연 처리 장치로 <b>추정될 뿐</b> 확인하지 않았다.</p></div>
+  </div>
+</section>
+
+<footer>
+  <span class="c-model">Chapter 5 · 출력 인터페이스</span> &nbsp;|&nbsp; 재윤 &nbsp;|&nbsp; <span class="c-ver">실측 2026-09-02 · claude 2.1.258</span><br>
+  근거: 교재 5장 · 내 클로드 시스템 실측(~/.claude/settings.json, 프로젝트 .claude/, v2.1.258 바이너리 문자열)<br>
+  <span style="color:#3c4844">이 페이지의 팔레트는 실측한 statusLine의 ANSI 값을 그대로 쓴다.</span>
+</footer>
+
+</main>
+<script>
+  (function(){
+    var meter=document.getElementById('meter'),
+        pct=document.getElementById('pct'),
+        cur=document.getElementById('cur'),
+        secs=[].slice.call(document.querySelectorAll('section[data-t]'));
+    function upd(){
+      var h=document.documentElement,
+          max=h.scrollHeight-h.clientHeight,
+          r=max>0?h.scrollTop/max:0;
+      meter.style.width=(r*100)+'%';
+      pct.textContent='📊 '+Math.round(r*100)+'%';
+      var mid=h.scrollTop+h.clientHeight*0.35, name=secs[0].dataset.t;
+      for(var i=0;i<secs.length;i++){ if(secs[i].offsetTop<=mid) name=secs[i].dataset.t; }
+      if(cur.textContent!=='▸ '+name) cur.textContent='▸ '+name;
+    }
+    document.addEventListener('scroll',upd,{passive:true});
+    window.addEventListener('resize',upd);
+    upd();
+  })();
+</script>
+</body>
+</html>
